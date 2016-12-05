@@ -1,0 +1,1242 @@
+\documentclass[]{article}
+
+\usepackage{anysize}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{mathtools}% Loads amsmath
+\usepackage{amssymb}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{pdfpages}
+\usepackage{wrapfig}
+\usepackage[makeroom]{cancel}
+
+\newcommand\SLASH{\char`\\}
+\newcommand{\csch}{\text{csch}}
+\marginsize{0.5in}{1in}{0.5in}{1in}
+
+
+\title{BIOS 8372 Final Project:\\OSCAR Data: Probability of Winning Best Actor Award When Nominated For Best Picture Award}
+\author{Svetlana Eden}
+%\date{Month Day, 2015}
+\date{\today}
+\hypersetup{hidelinks}
+
+\begin{document}
+	\maketitle
+
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.5>>=
+  if(FALSE){
+		setwd("/Users/svetlanaeden/Documents/GRADSCHOOL/2016_Sept/Leena/EXAMS/FINAL_PROJECT")
+  }
+  library(knitr)
+	library(R2OpenBUGS)
+	library(rms)
+	load("/Users/svetlanaeden/Documents/GRADSCHOOL/2016_Sept/Leena/EXAMS/FINAL_PROJECT/data/bdata.rda")
+	set.seed(1017)
+@
+	
+\subsection*{Special Notes}
+The data of this project is publically available, but before it can be used it needs to be downloaded for each year and processed into a usable format, this is why I'd rather not share the data before I publish the results. But, if sharing the data is necessary, please do not hesitate to share it. The results of this project may also be shared given that this won't affect the chances of this work to be published. 
+
+\subsection*{Introduction}
+Watching movies is a big part of American culture. Every person has his or her preferred janre, story, favorite actors and actresses. We think that we can tell good acting from bad. But do we really judge acting objectively? As laymen, we are probably not objective. What about professional actors and actresses, the OSCAR academy members. Are they being objective when they choose the best actor our of all OSCAR nominees? Let's assume OSCAR academy members watched two different movies, movie 1 and movie 2, with two different actors, actor 1 and actor 2 respectively. They are asked to decide which actor is better. Movie 1 is not particularly interesting, except that actor 1's acting is very good. Movie 2 is exceptionally good, and the acting of actor 2 is as good as of actor 1. The question is: which actor we will be perceived as a better one? In this work we use the OSCAR data to answer this question. We hypothesize that a \emph{best actor} (BA) nominee whose movie is also nominated for \emph{best picture} award (BP) has higher chances of winning this award than an actor from a movie without BP nomination.\\
+In this work, in order to shorten the language, instead of saying \emph{an actor who is a BA nominee whose movie is also nominated for BP}, we say \emph{a BA nominee who is also a BP nominee} or \emph{a movie nominated for BA that is also a BP nominee}.
+
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=4.5, fig.height=4.5, fig.align="center">>=
+################ likelihood analysis
+################ likelihood analysis
+################ likelihood analysis
+likAnalysis = function(fdata){
+	CILevel = 1/8
+	xGrid = seq(0, 1, .001)
+	paramMatr = matrix(NA, nrow=nrow(fdata), ncol=4)
+	colnames(paramMatr) = c("theta", "lower", "upper", "signif")
+	rownames(paramMatr) = rownames(fdata)
+	paramMatr[,"theta"] = fdata$bestPicNom/fdata$clusterSize
+	plotMatr = matrix(NA, nrow=nrow(fdata), ncol=length(xGrid))
+	paramMatr2 = paramMatr
+	plotMatr2 = plotMatr
+	a0 = b0 = 1/2
+	rownames(plotMatr) = rownames(fdata)
+	for(i in 1:nrow(paramMatr)){
+		plotMatr[i,] = (xGrid^fdata$bestPicNom[i])*(1-xGrid)^(fdata$clusterSize[i]-fdata$bestPicNom[i])
+		plotMatr[i,] = plotMatr[i,]/max(plotMatr[i,])
+		### find CIs so to speak
+		helpData = data.frame(X = xGrid, L = plotMatr[i,])
+		if(fdata$bestPicNom[i] == 0 | (fdata$clusterSize[i]-fdata$bestPicNom[i]) == 0){
+			ciData = helpData[order(abs(helpData$L-CILevel)),]
+		  CI = c(ciData[1,"X"], as.numeric(fdata$clusterSize[i]==fdata$bestPicNom[i]))
+		}else{
+			ciDataL = helpData[helpData$X < paramMatr[i,"theta"],]
+			ciDataU = helpData[helpData$X > paramMatr[i,"theta"],]
+			CI = c(ciDataL[order(abs(ciDataL$L-CILevel)),]$X[1], ciDataU[order(abs(ciDataU$L-CILevel)),]$X[1])
+		}
+		paramMatr[i, c("lower", "upper")] = CI[order(CI)]
+	}
+	paramMatr[, "signif"] = as.numeric((paramMatr[, "lower"] <= fdata$expectedProb) & (fdata$expectedProb <= paramMatr[, "upper"]) )
+	par(mfrow=c(2, 5), mar=c(3, 3, 2, 1))
+	for(i in 1:nrow(paramMatr)){
+		plot(xGrid, plotMatr[i,], type="l", ylab=paste("Cluster (", rownames(fdata)[i], ")", sep=""), xlim=c(-.05, 1))
+		mtext(side=3, line=.8, at=0, text=paste("Pattern (", rownames(fdata)[i], ")", sep=""), adj=0, cex=.7)
+		mtext(side=3, line=.1, at=0, text=paste("Cluster size=", fdata$clusterSize[i], sep=""), adj=0, cex=.7)
+		abline(h=CILevel, col="gray")
+		abline(v=paramMatr[i,"theta"], col="green")
+		#lines(x = paramMatr[i, c("lower", "upper")], y = c(0, 0), col="orange", lwd=10)
+		polygon(x = paramMatr[i, c("lower", "lower", "upper", "upper", "lower")], y = c(-1, CILevel, CILevel, -1, -1), col="orange", border="red")
+		lines(x = rep(fdata$num[i]/fdata$den[i],2), y=c(0, 2), col="black", lty=3)
+		text(fdata$num[i]/fdata$den[i]-.06, 2*CILevel, "Null", srt=90, cex=.8)
+	}
+	paramMatr
+}
+
+#################################################### separate Bayesian analysis
+#################################################### separate Bayesian analysis
+#################################################### separate Bayesian analysis
+separBayesAnalysis = function(fdata, a0, b0, nSim){
+	### parameters for the prior: a0, b0
+	paramMatr = matrix(NA, nrow=nSim, ncol = nrow(fdata))
+	colnames(paramMatr) = paste(c("theta"), 1:nrow(fdata), sep="")
+
+	for(i in 1:ncol(paramMatr)){
+		paramMatr[,i] = rbeta(nSim, fdata$bestPicNom[i] + a0, fdata$clusterSize[i]-fdata$bestPicNom[i] + b0)
+	}
+	paramMatr
+}
+
+################ WAIC stuff
+WAIC = function(Rj, Nj, simThetas, dataDistr=dbinom){
+	yMatr = matrix(Rj, nrow=nrow(simThetas), ncol=ncol(simThetas), byrow=TRUE)
+	nMatr = matrix(Nj, nrow=nrow(simThetas), ncol=ncol(simThetas), byrow=TRUE)
+	posterior = matrix(NA, nrow=nrow(simThetas), ncol=ncol(simThetas))
+	for(j in 1:ncol(posterior)){
+		posterior[,j] = dataDistr(yMatr[,j], nMatr[,j], simThetas[,j])
+	}
+	meanOfPdfs = apply(posterior, 2, mean)
+	meanOfLogPdfs = apply(log(posterior), 2, mean)
+	varOfLogPdfs = apply(log(posterior), 2, var)
+	lppd = sum(log(meanOfPdfs))
+	p_WAIC_1 = 2*lppd - sum(meanOfLogPdfs)
+	WAIC_1 = -2*lppd + 2*p_WAIC_1	
+	p_WAIC_2 = sum(varOfLogPdfs)
+	WAIC_2 = -2*lppd + 2*p_WAIC_2
+	res = c(WAIC_1, p_WAIC_1, WAIC_2, p_WAIC_2, lppd)
+	names(res) = c("WAIC_1", "p_WAIC_1", "WAIC_2", "p_WAIC_2", "lppd")
+	# res = c(WAIC_2, lppd, p_WAIC_2)
+	# names(res) = c("WAIC_2", "lppd", "p_WAIC_2")
+	res
+}
+	
+reportQuestion = function(x, label="x", textX=median(x), textY=NULL, roundNum = 2, cexArg=0.7, color="gray", border="white", ylim=NULL, ...){
+	cexArg = 0.7
+	tmp = hist(x, plot=FALSE)
+	if (is.null(ylim)) ylim = c(0, max(tmp$counts))
+	hist(x, cex.axis=cexArg, main="", xlab=label, col=color, border=border, ylim=ylim, ...)
+	if (is.null(textY)) textY = ylim[2]
+	# text(textX, textY, paste("Post. mean = ", round(mean(x, na.rm=TRUE), roundNum), sep=""), pos=4, cex=cexArg)
+	# text(textX, textY*.95, paste("Post. SD = ", round(sd(x, na.rm=TRUE), roundNum), sep=""), pos=4, cex=cexArg)
+	# text(textX, textY*.9, paste("Median, 95% CIs:"), pos=4, cex=cexArg)
+	# text(textX, textY*.85, paste("  ", bootCIs(x)), pos=4, cex=cexArg)
+}
+
+bootCIs = function(whatever, str=TRUE){
+	### whatever is vector of simulated values
+	pointEst = median(whatever)
+	CIs = quantile(whatever, probs=c(.025, .975))
+	if(str){
+		CIStr(pointEst, CIs)
+	}else{
+		c(pointEst, CIs)
+	}
+}
+
+CIStr = function(pointEst, CIs, roundPoint=2, roundCIs=2){
+	paste(round(pointEst, roundPoint), " [", paste(round(CIs, roundCIs), collapse=", "),"]", sep="")
+}
+
+############################# gibbs and metropolis stuff
+############################# gibbs and metropolis stuff
+############################# gibbs and metropolis stuff
+tableReport = function(x, nround = 3){
+	meanX = mean(x, na.rm=TRUE)
+	sdX = sd(x, na.rm=TRUE)
+	percentiles = quantile(x, probs=c(.025, .25, .5, .75, .975), na.rm=TRUE)
+	res = c(meanX, sdX, percentiles)
+	names(res) = c("mean", "sd", names(percentiles))
+	resStr = round(res, nround)
+	resStr
+}
+
+sampleAlpha = function(alphaCurr, beta0, thetas, a0=.1, shape=3){
+	# if(FALSE){
+	# 	thetas = 2
+	# 	alpha = seq(from=.01, to=10, by=.1)
+	# 	y =  ((alpha-1)*sum(log(thetas)) + 10*alpha*log(beta0) - alpha - 10*log(gamma(alpha)))
+	# 	y =  unnormDensLog(alpha = alpha, beta0=2, thetas=2)
+	# 	plot(alpha, y, type="l")
+	# }
+	unnormDensLog = function(alpha, beta0, a0, thetas){
+		sum( (alpha - 1)*log(thetas) + log(gamma(alpha+beta0)) - log(gamma(alpha))  ) - alpha*a0
+	}
+	alphaStar = rgamma(1, alphaCurr/shape, 1/shape) # exp(-x/b) mean = ab, var=ab^2, b is scale
+	JtAlphaStarLog = log(dgamma(alphaStar, alphaCurr/shape, 1/shape)) 
+	JtAlphaMin1Log = log(dgamma(alphaCurr, alphaStar/shape, 1/shape))
+	densStarLog = unnormDensLog(alphaStar, beta0=beta0, a0=a0, thetas=thetas)
+	densMin1Log = unnormDensLog(alphaCurr, beta0=beta0, a0=a0, thetas=thetas)	
+	#cat("a *", alphaStar, "   dens *", densStarLog, "   dens c", densMin1Log, "\n")
+	ratio = exp((densStarLog - JtAlphaStarLog)   -   (densMin1Log - JtAlphaMin1Log))
+	newAlpha = alphaCurr
+	if(all(thetas != 0)){
+		ratio = exp((densStarLog - JtAlphaStarLog)   -   (densMin1Log - JtAlphaMin1Log))
+	}else{
+		ratio = exp(( - JtAlphaStarLog)   -   ( - JtAlphaMin1Log))
+	}
+	if(is.na(ratio) | ratio == Inf){
+		cat("a*", alphaStar, "   dens *", densStarLog, "   dens t-1", densMin1Log, "  J dens *", JtAlphaStarLog, "  J dens t-1", JtAlphaMin1Log, "\n")
+	}
+	accept = 0
+	if(ratio >= 1 | runif(1) <= ratio){
+		newAlpha = alphaStar
+		accept = 1
+	}
+	#c(newAlpha, accept)
+	newAlpha
+}
+
+sampleBeta = function(betaCurr, alpha0, thetas, b0=.1, shape=3){
+	unnormDensLog = function(beta, alpha0, b0, thetas){
+		sum( (beta - 1)*log(1-thetas) + log(gamma(beta + alpha0)) - log(gamma(beta))  ) - beta*b0
+	}
+	betaStar = rgamma(1, betaCurr/shape, 1/shape)
+	JtBetaStarLog = log(dgamma(betaStar, betaCurr/shape, 1/shape))
+	JtBetaMin1Log = log(dgamma(betaCurr, betaStar/shape, 1/shape))
+	densStarLog = unnormDensLog(betaStar, alpha0=alpha0, b0=b0, thetas=thetas)
+	densMin1Log = unnormDensLog(betaCurr, alpha0=alpha0, b0=b0, thetas=thetas)	
+	#cat("a *", betaStar, "   dens *", densStarLog, "   dens c", densMin1Log, "\n")
+	if(all(thetas != 1)){
+	  ratio = exp((densStarLog - JtBetaStarLog)   -   (densMin1Log - JtBetaMin1Log))
+	}else{
+	  ratio = exp(- JtBetaStarLog + JtBetaMin1Log)
+	}
+	newBeta = betaCurr
+	if(is.na(ratio) | ratio == Inf){
+		cat(paste(thetas, collapse=", "), "\n")
+		cat("b*", betaStar, "   dens*", densStarLog, "   dens_t-1", densMin1Log, "  J dens*", JtBetaStarLog, "  J dens t-1", JtBetaMin1Log, "\n")
+	}
+	accept = 0
+	if(ratio >= 1 | runif(1) <= ratio){
+		newBeta = betaStar
+		accept = 1
+	}
+	#c(newBeta, accept)
+	newBeta
+}
+
+gibbsAndMH1 <- function(Ys, Ns, a0, b0, shape=3, startingParam, nSim = 10){
+	seeds = 1:(2*nSim)
+	if(length(Ys) != length(Ns)) stop("The lengths of Ys and Ns should be the same.")
+	lenY = length(Ys)
+	paramMatr = matrix(NA, nrow=nSim, ncol=lenY+2)
+	colnames(paramMatr) = c(paste(rep("theta", lenY), 1:lenY, sep=""), c("alpha", "beta"))
+	paramMatr[1,] = startingParam
+	onlyThetaNames = colnames(paramMatr)[1:(ncol(paramMatr)-2)]
+	#set.seed(seeds[i])
+	effSampleSize = rep(0, nSim)
+  for(i in 2:nSim){
+	  for(j in 1:lenY){
+		  thetaName = paste("theta", j, sep="")
+			paramMatr[i, thetaName] = rbeta(n=1, Ys[j]+paramMatr[i-1, "alpha"], Ns[j] - Ys[j]+paramMatr[i-1,"beta"])
+	  }
+		#set.seed(seeds[i])
+		#print(seeds[i])
+    paramMatr[i, "alpha"] = sampleAlpha(alphaCurr=paramMatr[i-1, "alpha"], beta0=paramMatr[i-1, "beta"], thetas=paramMatr[i, onlyThetaNames], a0=a0, shape=shape)
+		#set.seed(seeds[i])
+    paramMatr[i, "beta"] = sampleBeta(betaCurr=paramMatr[i-1, "beta"], alpha0=paramMatr[i, "alpha"], thetas=paramMatr[i, onlyThetaNames], b0=b0, shape=shape)
+		if(any(paramMatr[i-1, c("alpha", "beta")] != paramMatr[i, c("alpha", "beta")])){
+			effSampleSize[i] = 1
+		}
+  }
+	list(paramMatr = paramMatr, effSampleSize = effSampleSize)
+}
+
+bayesAnalysisOne = function(baydata, listOfRes, nSim = 10000, predNum = 1000, plotNum=2000, seed = 100, plotTrace = TRUE){
+	################################################# model convergence report:
+	################################################# model convergence report:
+	################################################# model convergence report:
+	#colorVec = c("gray", "#11111144", "#FF110044")
+	dataLength = nrow(baydata)
+	
+	if(plotTrace){
+		colorVec = c("orange", "red", "blue")
+		par(mfrow=c(6, 2), mar=c(2.7, 3, 1.5, 0.5))
+		plottingRange = 1:plotNum
+		for (i in 1:ncol(listOfRes[[1]])){
+			plot(x = c(1, nrow(listOfRes[[1]][plottingRange,])), y = c(0, max(1, max(sapply(listOfRes, function(x)max(x[plottingRange, i]))))), ylab="", type="n")
+			#mtext(colnames(listOfRes[[1]])[i], side = 3, line = 0, at=0, font=2)
+			mtext(expression(theta[1], theta[2], theta[3], theta[4], theta[5], theta[6], theta[7], theta[8], theta[9], theta[10], alpha, beta)[i], side = 3, line = 0, at=0, font=2)
+			for(j in 1:length(listOfRes)){
+		    lines(x=1:nrow(listOfRes[[j]][plottingRange,]), y=listOfRes[[j]][plottingRange,i], col=colorVec[j],)
+		  }
+		}
+  }
+
+	################################################## simulate predictive data:
+	################################################## simulate predictive data:
+	################################################## simulate predictive data:
+	res = listOfRes[["res2"]][burnIn:nSim,]
+	meansAndStuff = apply(res, 2, tableReport)
+	finalRes = t(meansAndStuff[,1:dataLength])
+
+	predData = matrix(NA, nrow = predNum, ncol=dataLength)
+	probOfNull = rep(NA, dataLength)
+	names(probOfNull) = rownames(bd)
+	fitPVal = rep(NA, dataLength)
+	names(fitPVal) = rownames(bd)
+	for(i in 1:dataLength){
+	  predData[,i] = rbinom(n=predNum, size=ni[i], prob=meansAndStuff["mean", i])/ni[i]
+	  #predData[,i] = rbinom(n=predNum, size=ni[i], prob=res[, i])/ni[i]
+		if(baydata$clusterSize[i]==1){
+		  probOfNull[i] = mean(bd$expectedProb[i] != predData[,i])
+		}else{
+		  probOfNull[i] = mean(bd$expectedProb[i] > predData[,i])
+		}
+		if(bd$observedProb[i] == 0){
+  		#fitPVal[i] = min(1-mean(bd$observedProb[i]>predData[,i]), 1-mean(bd$observedProb[i]<predData[,i]))
+	  	fitPVal[i] = (table(predData[,i])/nrow(predData))["0"]
+  	}else{
+	  	fitPVal[i] = min(mean(bd$observedProb[i]>predData[,i]), 1-mean(bd$observedProb[i]<predData[,i]))
+  	}
+	}
+
+	finalRes = cbind(finalRes, fitPVal, signif = probOfNull)
+	colnames(finalRes) = gsub("mean", "theta", colnames(finalRes))
+	colnames(finalRes) = gsub("2.5%", "lower", colnames(finalRes))
+	colnames(finalRes) = gsub("97.5%", "upper", colnames(finalRes))
+
+	############################ plotting probabilities obtained by the model (thetas)
+	############################           actual data point (yi/ni) (green point)
+	############################           and the null probability (vertical line)
+	if(FALSE){
+		par(mfrow=c(2, 5), mar=c(3, 3, 1, 1))
+		ylim=c(-0.1, 8)
+		for(i in 1:dataLength){
+			reportQuestion(predData[,i], xlim=c(-.05, 1.05), freq=FALSE, ylim=ylim)
+			points(bd$observedProb[i], 0, pch=21, col="black", bg="green", cex=3, ylim=c(0, .4))
+			lines(x = rep(bd$expectedProb[i],2), y=c(0, 4), col="black", lty=3)
+			text(bd$expectedProb[i]-.06, 3, "Null", srt=90, cex=.8)
+			position = 4
+			spacer = .3
+			text(0, 5, paste("Pattern = (", rownames(bd)[i], ")", sep=""), pos=position, font=2)
+			text(0, 5-spacer, paste("Cluster size =", bd$clusterSize[i]), pos=position, font=2)
+			colorForPval=if(probOfNull[i]<=0.05) "red" else "black"
+			text(0, 5-3*spacer, paste("P-value =", probOfNull[i]), pos=position, col=colorForPval)
+			text(bd$observedProb[i], 0, "D", col="black", srt=0, cex=.7)
+	 	}
+	}
+	#WAIC(Rj=yi, Nj=ni, simThetas=res2[,1:10], dataDistr=dbinom)
+  finalRes
+}
+
+bayesSecondOpenBUGS <- function(priorForMu, priorForTau, startDeltas = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)){
+	library(R2OpenBUGS)
+	model3 <- function(){
+		for(i in 1 : N) {
+		  y[i] ~ dbin(theta[i], n[i])
+		  theta[i] <- 1/(1+exp(-c[i] - delta[i]))
+		  delta[i] ~ dnorm(mu, tau)
+	  	c[i] <- -log(nCl[i]/rCl[i] - 1)
+		}
+		# priors:
+		mu ~ dnorm(0,  1.0E-6)
+		tau ~ dgamma( 1.0E-2, 1.0E-2)   
+	}
+	fileWithTheModel = "/Users/svetlanaeden/Documents/GRADSCHOOL/2016_Sept/Leena/EXAMS/FINAL_PROJECT/Model3.txt"
+	OpenBUGS_Blah = "/Users/svetlanaeden/.wine/drive_c/Program Files/OpenBUGS/OpenBUGS323/OpenBUGS.exe"   
+	write.model(model3, fileWithTheModel)
+	data <- list(N = 10,
+		y = c(0, 2, 3, 4, 17, 4, 21, 1, 10, 4), n = c(1, 8, 3, 5, 23, 5, 23, 1, 10, 4),
+	  rCl = c(0, 1, 2, 2, 2, 3, 3, 4, 4, 5), nCl = c(5, 5, 3, 4, 5, 4, 5, 4, 5, 5)
+	)
+	inits <- function(){
+	  list(mu = priorForMu, tau=priorForTau, delta=startDeltas)
+	}
+	#parameters <- c("theta", "delta")
+	parameters <- c("theta")
+	model3Sim <-  bugs(data, inits,  parameters, fileWithTheModel, 
+	                     n.chains=1, n.iter=20000, OpenBUGS.pgm = OpenBUGS_Blah, 
+	                     useWINE=TRUE, debug = FALSE, codaPkg = FALSE)
+	model3Sim
+}
+
+######## plotting POSTERIOR DENSITIES OF Theta
+######## plotting POSTERIOR DENSITIES OF Theta
+######## plotting POSTERIOR DENSITIES OF Theta
+plotPostPredDens = function(res, bd = baydata, spacer = .3){
+	dataLength = nrow(baydata)
+	par(mfrow=c(2, 5), mar=c(3, 3, 3, 1))
+	for(i in 1:dataLength){
+		reportQuestion(res[,i], xlim=c(-.05, 1.05), freq=FALSE, ylim=c(-0.1,5.5))
+		box(col=gray(.3))
+		points(bd$observedProb[i], 0, pch=21, col="black", bg="green", cex=3, ylim=c(0, .4))
+		text(bd$observedProb[i], 0, "D", col="black", srt=0, cex=.7)
+		lines(x = rep(bd$expectedProb[i],2), y=c(0, 6), col="black", lty=3)
+		text(bd$expectedProb[i]-.06, 4, "Null", srt=90, cex=.8)
+		position = 4
+		# text(0, 5, paste("Pattern = (", rownames(bd)[i], ")", sep=""), pos=position, font=2)
+		# text(0, 5-spacer, paste("Cluster size =", bd$clusterSize[i]), pos=position, font=2)
+		mtext(text = paste("Pattern = (", rownames(bd)[i], ")", sep=""), side = 3, at=0, adj=0, line = .9, cex=.7)
+		mtext(text = paste("Cluster size =", bd$clusterSize[i]), side = 3, at=0, adj=0, line = 0.2, cex=.7)
+	}
+}
+
+alternToTableReport = function(x, xCoord, pointEst, text="", bd=baydata, relatWidth=NULL){
+	spacer = .7
+	if(x["signif"]<.05){
+		colors = c("darkred", "orange", "darkred")
+	}else{
+	  colors = c("blue", "green", "black")
+	}
+	lines(rep(xCoord, 2), x[c("lower", "upper")], col=colors[3])
+	points(xCoord, x["theta"], pch=21, cex=2, col=colors[1], bg=colors[2])
+	mtext(text = text, side = 1, line = .5, at = xCoord, las=2, cex=.7)
+}
+
+############################ convergence measure
+############################ convergence measure
+############################ convergence measure
+convergenceR = function(listOfRes, lengthAll = 1000, shortLen = round(lengthAll/4)){
+	m = length(listOfRes)
+	n = shortLen
+	################# figure out indices for each small chain
+	startInd = 1+n*(0:(round(lengthAll/n)-1 - as.numeric((round(lengthAll/n)*n - lengthAll) > 0)))
+	endInd = startInd + n - 1
+	################# create storage matrices for MEAN and SD
+	meanPerChain = matrix(NA, nrow = m*length(startInd), ncol = ncol(listOfRes[[1]]))
+	colnames(meanPerChain) = colnames(listOfRes[[1]])
+	varPerChain = meanPerChain
+	for (j in 1:m){  ### loop over each chain
+		placementInd = (j-1)*(length(startInd))+(1:length(startInd))
+		workMatr = listOfRes[[j]]
+		for(i in 1:length(startInd)){
+	    meanPerChain[placementInd[i], ] = apply(workMatr[startInd[i]:endInd[i],], 2, mean)
+	    varPerChain[placementInd[i], ] = apply(workMatr[startInd[i]:endInd[i],], 2, var)
+	  }
+  }
+	overallMean = apply(meanPerChain, 2, mean)
+	W = apply(varPerChain, 2, mean)
+	B = t(apply(meanPerChain, 1, function(x){(x - overallMean)^2}))
+	B = n*apply(B, 2, sum)/(m-1)
+	varThetaY = ((n-1)/n)*W  +  B/n
+	RHat = sqrt(varThetaY/W)
+	RHat
+}
+
+convROverLength = function(listOfRes){
+	numOfSims = 5000
+	numOfRHats = 5
+	if(nrow(listOfRes[[1]])<numOfSims) stop("The number of simuated thetas should be at least 5000 (because function convROverLength() is hard-coded)")
+	res = matrix(NA, nrow = numOfRHats, ncol = ncol(listOfRes[[1]]))
+	colnames(res) = colnames(listOfRes[[1]])
+	for (i in 1:numOfRHats){
+		#res[i,] = convergenceR(listOfRes, lengthAll = 1000*i, shortLen = round(lengthAll/4))
+		res[i,] = convergenceR(listOfRes, lengthAll = 1000*i, shortLen = round(1000*i/4))
+	}
+	par(mfrow=c(2, 6), mar=c(2, 2, 1, 1))
+	letters = c(paste("theta_", 1:10, sep=""), "alpha", "beta")
+	for (j in 1:ncol(listOfRes[[1]])){
+		plot(res[,j], type="l", ylim=c(0.5, 1.5), col="#77000077", lwd=3)
+		abline(h=1, lty=3)
+		text(4.7, 1.4, expression(theta[1], theta[2], theta[3], theta[4], theta[5], theta[6], theta[7], theta[8], theta[9], theta[10], alpha, beta)[j])
+	}
+	res
+}
+
+@
+}}
+
+\subsection*{The data}
+The data with OSCAR nominees and winners are publicly available on the following website:  \url{http://awardsdatabase.oscars.org/ampas_awards/BasicSearchInput.jsp}. It is available for each year in a separate file and in order to use it, we processed all files using \emph{Python 2.7.12 :: Anaconda custom (x86\_64)} (see the \emph{Python} code in the Appendix). We excluded years 1928-1932 because during that time more than one actor/actress could win an award. As a result we used 83 years (1933-2015) in our analysis. For each year, our data included all movies nominated for BA and whether each of them was also nominated for BP and/or won the BA award.
+
+%\clearpage
+
+\subsection*{Notations and definitions}
+We introduce the following notations:
+\begin{itemize}
+	\item $P_{W_{BA}|BP}$ - probability of winning a BA award given that the movie was nominated for BP.
+	\item $N_Y$ - total number of years ($N_Y=83$)
+	\item $i=\{1,...,N_Y\}$ - year 
+	\item $n_i$ - number of movies nominated for BA in a given year.
+	\item $r_i$ - number of movies out of $n_i$ nominated for BP in a given year ($r_i\leq n_i$).
+	\item $\delta_i$ - an indicator variable. $\delta_i=1$ if in year $i$ the movie that won a BA award was also nominated for BP, and $\delta_i=0$ otherwise.
+	\item In a given year $n_i$ and $r_i$ can be different. We believe that different combinations of $n_i$ and $r_i$ might effect $P_{W_{BA}|BP}$ in different ways. We call a unique combination $(r,n)_j$ a \emph{pattern}.
+	\item Years with the same \emph{pattern} belong to one \emph{cluster}. There are $N_c$ unique \emph{clusters}.
+	\item $i \in (r,n)_j$ - all years with the same \emph{pattern} (see previous definition), or a \emph{cluster}.
+	\item $N_j$ - number of years in a given cluster or a \emph{cluster size}.
+	\item $R_j = \sum_{i \in (r,n)_j} \delta_i$ - number of years (out of $N_j$) in which the BA award was won by a BP  nominee.
+	\item $n_j$ - number of movies nominated for BA in a given \emph{cluster}
+	\item $r_j$ - number of movies out of $n_i$ nominated for BP in a given \emph{cluster}.
+\end{itemize}
+
+\subsection*{Primary hypothesis.}
+If nomination for BP did not have any effect on $P_{W_{BA}|BP}$, then $P_{W_{BA}|BP}$ would have depended only on the prevalence of BP nominees among BA nominees for a given year. In other words, $P_{W_{BA}|BP}$ would have been equal to $\frac{r_i}{n_i}$. We hypothesize that a BA nominee whose movie is also a BP nominee has higher chances of winning a BA award than a BA nominee without BP nomination.
+$$
+\begin{aligned}
+	H_0:&~~~P_{WBA|BP,~i} > \frac{r_i}{n_i}\\
+	H_1:&~~~P_{WBA|BP,~i} \leq \frac{r_i}{n_i}\\
+\end{aligned}
+$$
+Our very simple preliminary analysis shows (see Table \ref{table:goal1} and  Figure \ref{fig:bubbles}) that the observed probability is higher than the expected probability.\\
+
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA>>=
+############################################### subset data by categ and year
+############################################### take only year 1933
+#actVar =  c("leadingactor", "leadingactress")
+actVar =  c("leadingactor")
+mainNomin = "leadingactor"
+mainWin = paste(actVar, "Won", sep="")
+mainVar = "bestmovie"
+
+############################ number of movies in the same year nominated for best actor/actress
+############################ number of movies in the same year nominated for best actor/actress
+nomins = tapply(bdata[[mainNomin]], bdata$year, length)
+bdata$denom = nomins[as.character(bdata$year)]
+
+############################ number of movies in the same year nominated for best actor/actress
+############################   that is also nomin. for best pic:
+nombest = tapply(bdata[[mainVar]], bdata$year, function(x){sum(x>0)})
+bdata$numer = nombest[as.character(bdata$year)]
+
+############################ make a table:
+############################ make a table:
+bdata$pattern = paste(bdata$numer, bdata$denom, sep=",")
+
+### take only events that happened (those who actually won the best actor/actress award)
+ldata = bdata[bdata[[mainWin]]==1,]
+numerator = tapply(ldata$numer, ldata$pattern, unique)
+denominator = tapply(ldata$denom, ldata$pattern, unique)
+clusterSize = tapply(ldata$pattern, ldata$pattern, length)
+bestPicNom = tapply(ldata$bestmovie, ldata$pattern, sum)
+
+observedProb = bestPicNom/clusterSize
+expectedProb = tapply(ldata$numer, ldata$pattern, unique)/tapply(ldata$denom, ldata$pattern, unique)
+
+baydata = data.frame(num = numerator, den = denominator, clusterSize = clusterSize, bestPicNom = bestPicNom, observedProb = observedProb, expectedProb = expectedProb)
+
+table1 = data.frame(Cluster.Size = clusterSize, Number.Of.BP.That.Won.BA = bestPicNom,
+	Observed.Probability = observedProb, Expected.Probability = expectedProb)
+# table1 = data.frame(Cluster_Size = clusterSize, Number_Of_BP_That_Won_BA = bestPicNom, Observed_Probability = observedProb, Expected_Probability = expectedProb)
+# t(round(table1, 2))
+@
+}}
+
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, results="asis", fig.align="center">>=
+tmpdata = as.data.frame(t(round(table1, 2)))
+for(i in 1:ncol(tmpdata)){
+	tmpdata[,i] = as.character(tmpdata[,i])
+}
+latex(object = tmpdata, file = "", title = "Pattern, $(r,n)_j$", label = "table:goal1",
+ where = "!h", caption = "Estimated observed probability of winning a BA given BP, and expected probability.")
+@
+}}
+~\\
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=4, fig.height=4, fig.align="center">>=
+par(mar=c(4,4,0,0))
+plotLabels = paste("(", names(expectedProb), ")", sep="")
+plotLabels[plotLabels %in% c("(4,4)", "(5,5)")] = "(4,4), (5,5)"
+plot(expectedProb, observedProb, col="red", pch=21, bg="pink", cex=0.1 + .1*clusterSize, xlim=c(-.03, 1.03), ylim=c(-.03, 1.03),
+xlab="Expected Probability", ylab="Observed Probability")
+text(expectedProb, observedProb, plotLabels, pos=1, cex=.6)
+abline(0, 1, col="#44444444")
+@
+}}
+\caption{Estimated observed probability of winning a BA given BP, and expected probability. Larger dot size means larger \emph{cluster} size. The \emph{pattern} of each \emph{cluster} is printed below each dot.}
+\label{fig:bubbles}
+\end{figure}
+~\\
+
+\section*{Analysis plan.}
+From Table \ref{table:goal1}, we know that unique patterns of BP nominees among BA nominees form 10 \emph{clusters}. When modeling a probability of winning a BA while being nominated for BP, we allow the probability to be diffferent from \emph{cluster} to \emph{cluster}.\\
+One of the goals for this project is to compare estimates obtained using different statistical paradigms. In this work we compare \emph{likelihood} and \emph{Bayesian} approaches. Below we present our approaches:
+~\\
+\begin{enumerate}[1)]
+	\item Likelihood approach: we estimate each $\theta_j={P}_{W_{BA}|BP,~j}$ separately for each cluster.
+	
+	\item\textbf{Bayesian model I(a)}: we estimate $\theta_j={P}_{W_{BA}|BP,~j}$ using the following hierarchical model:
+		$$
+		\begin{aligned}
+			R_j &\sim Binomial(\theta_j, N_j)\\
+			\theta_j &\sim Beta(1/10, 1/10)\\
+		\end{aligned}
+		$$
+	\item\textbf{Bayesian model I(b)}: the same as \textbf{Bayesian model I(a)} but with different prior parameters:
+		$$
+		\begin{aligned}
+			\theta_j &\sim Beta(2, 2)\\
+		\end{aligned}
+		$$
+	\item\textbf{Bayesian model II(a)}: we estimate $\theta_j={P}_{W_{BA}|BP,~j}$ using the following hierarchical model:
+		$$
+		\begin{aligned}
+			R_j &\sim Binomial(\theta_j, N_j)\\
+			\theta_j &\sim Beta(\alpha, \beta)\\
+			\alpha &\sim Gamma(1, rate=10),~with~mean~\frac{1}{10}\\
+			\beta &\sim Gamma(1, rate=10),~with~mean~\frac{1}{10}\\
+		\end{aligned}
+		$$
+	\item\textbf{Bayesian model II(b)}: the same as \textbf{Bayesian model II(a)} but with different prior parameters:
+		$$
+		\begin{aligned}
+			\alpha &\sim Gamma(2, 1),~with~mean~2\\
+			\beta &\sim Gamma(2, 1),~with~mean~2\\
+		\end{aligned}
+		$$
+\end{enumerate}
+
+The performance of all five models will be compared by looking at their point estimate and credible intervals (or likelihood analog of confidence intervals). Also The models will be compared by their predictive performance and using \emph{WAIC} indices.\\
+~\\
+
+\subsection*{The choices of priors.}
+Our goal was to have a relatively non-informative prior for all four models. It made sense to have a prior that would agree with different clusters. For example, some clusters had probability of 0, and some of 1. So our best prior for models \textbf{I(a)} and \textbf{I(b)} was $Beta(1/10, 1/10)$. Similarly, models \textbf{II(a)} and \textbf{II(b)} we chose priors for $\alpha$ and $\beta$ with such parameters $a$ and $b$ that on average they would have values of $1/10$, resulting in on \emph{average} (very loosely speaking) distribution of $Beta(1/10, 1/10)$.\\
+For our sensitivity analysis, we chose another prior. We thought that, for models \textbf{I(a)} and \textbf{I(b)}, having priors $Beta(2, 2)$ would be on one hand uninformative enough, and on the other, it would pull the estimates toward $1/2$ to some degree. Similarly, for models \textbf{II(a)} and \textbf{II(b)}, we chose such priors for $\alpha$ and $\beta$ that on \emph{average} (again, very loosely speaking), they result in distribution of $Beta(2, 2)$ (which in turn, pulls the estimates toward $1/2$).\\
+Note that we did not use the uniform prior because we thought that such choice would make the analysis very similar to the likelihood approach.\\
+Also, for models \textbf{I(a)} and \textbf{I(b)}, we could have used different priors for each cluster: a $Beta$ distribution with mean $\frac{R_j}{N_j}$ that reflects the \emph{null} probability ${P}_{W_{BA}|BP,~j}$. However, we thought that it would make an unfair comarison to the hierarchical mdoels \textbf{II(a)} and \textbf{II(b)}, because in for hierarchical model of two levels, the \emph{null} hypothesis cannot be reflected in the prior. Because of these considerations, we did not consider individuals priors for models \textbf{I(a)} and \textbf{I(b)}.
+ 
+\subsection*{Implementation of the Likelihood model.}
+The implementation of the Likelihood model was straight forward. The maximum likelihood estimates were computed as $\hat{\theta}_j = \frac{R_j}{N_j}$ and the analog of the confidence itervals was obtained by drawing a horizontal line of $1/8$ and finding two intersection points with the likelihood that is \emph{normalized} in such way that the maximum of the likelihood function is $1$ (we learned this in Jeffrey's class).
+
+\subsection*{Implementation of Bayesian models I(a), I(b).}
+Because models \textbf{I(a)} and \textbf{I(b)} have conjugate priors, their implementation did not require computational methods, so we used built-in R-functions in order to find posterior distributions.
+
+\subsection*{Implementation details for Bayesian models II(a), II(b).}
+For models \textbf{II(a)} and \textbf{II(b)}, we implemented an algorithm that utilizing \emph{Gibbs sampler} and \emph{Metropolis-Hastings} appoaches. The number of iterations was$10,000$ with $5,000$ burn-ins.\\
+~\\
+In order to compute the estimates we first need to define the hierarchical model by defining the distribution for $\theta_j$'s, their hyper distribution, and the priors for the hyper-parameters. As noted previously, our model can be written as:
+		$$
+		\begin{aligned}
+			R_j &\sim Binomial(\theta_j, N_j) = \binom{N_j}{R_j}\theta_j^{R_j}(1-\theta_j)^{N_j - R_j}\\
+			\theta_j &\sim Beta(\alpha, \beta) = \frac{\theta_j^{\alpha-1}(1-\theta_j)^{\beta-1}}{B(\alpha, \beta)}\\
+			\alpha &\sim Gamma(a, b),~with~mean~\frac{a}{b}\\
+			\beta &\sim Gamma(a, b),~with~mean~\frac{a}{b}\\
+		\end{aligned}
+		$$
+Parameters $(a,b)$ are either $(1/10, 1/10)$ or $(2,2)$ for models \textbf{II(a)} and \textbf{II(b)} respectively. We now write the posterior distribution:
+		$$
+		\begin{aligned}
+			P(\pmb{\theta}, \alpha, \beta)  \propto \left[\prod_{j=1}^{N_c} \binom{N_j}{R_j}\theta_j^{R_j}(1-\theta_j)^{N_j - R_j} \cdot \frac{\theta_j^{\alpha-1}(1-\theta_j)^{\beta-1}}{B(\alpha, \beta)}\right]  \times e^{-a\alpha} e^{-b\beta} \\
+		\end{aligned}
+		$$
+
+We sample our posterior using a combination of the \emph{Gibbs} sampler (GS) and the \emph{Metrobolis-Hasting} algorithm (MH). In order to use GS we need conditional distributions for each of the parameters: $\theta_1$, $\theta_2$, ..., $\theta_{N_c}$, $\alpha$, and $\beta$. We remember that \emph{Beta} distribution is a conjugate prior for the Binomial distribution, therefore it is easy to see from the above expression (we also derived in the homework) that:
+		$$
+		\begin{aligned}
+			\theta_j |\alpha,\beta \sim Beta(R_j + \alpha,~~ N_j - R_j + \beta)
+		\end{aligned}
+		$$
+Now, in order to find the distributions for $\alpha|\theta_j,\beta$, we look at our posterior again, and assume that $\theta_j$ and $\beta$ are constants, so we get:
+		$$
+		\begin{aligned}
+			P(\pmb{\theta}, \alpha, \beta)  &\propto \left[\prod_{j=1}^{N_c}  \frac{\theta_j^{\alpha-1}}{B(\alpha, \beta)}\right]  \cdot e^{-a\alpha} 
+			\propto \left[\prod_{j=1}^{N_c}  \frac{\theta_j^{\alpha-1} \Gamma(\alpha + \beta)}{\Gamma(\alpha)\Gamma(\beta)}\right]  \cdot e^{-a\alpha}
+		\end{aligned}
+		$$
+And therefore we get:
+		$$
+		\begin{aligned}
+			\alpha| \pmb{\theta}, \beta  \propto \left[\prod_{j=1}^{N_c}  \frac{\theta_j^{\alpha-1} \Gamma(\alpha + \beta)}{\Gamma(\alpha)}\right]  \cdot e^{-a\alpha} \\
+		\end{aligned}
+		$$
+Similarly, for $\beta$, we get:
+		$$
+		\begin{aligned}
+			\beta| \pmb{\theta}, \alpha  \propto \left[\prod_{j=1}^{N_c}  \frac{(1 - \theta_j)^{\beta-1} \Gamma(\alpha + \beta)}{\Gamma(\beta)}\right]  \cdot e^{-b\beta} \\
+		\end{aligned}
+		$$
+Now, we can apply GS to the following series of the conditional distributions. In other words, for each iteration $t$ we sample:
+		$$
+		\begin{aligned}
+			\theta_j^{t} |\alpha^{t-1},\beta^{t-1} &\sim Beta(R_j + \alpha^{t-1},~~ N_j - R_j + \beta^{t-1})\\
+			\alpha^{t}| \pmb{\theta}^{t}, \beta^{t-1}  &\propto \left[\prod_{j=1}^{N_c}  \frac{\left(\theta_j^{t}\right)^{\alpha-1} \Gamma(\alpha^{t-1} + \beta^{t-1})}{\Gamma(\alpha^{t-1})}\right]  \cdot e^{-a\alpha^{t-1}} \\
+			\beta^{t}| \pmb{\theta}^{t}, \alpha^{t}  &\propto \left[\prod_{j=1}^{N_c}  \frac{(1 - \theta_j^{t})^{\beta-1} \Gamma(\alpha^{t} + \beta^{t-1})}{\Gamma(\beta^{t-1})}\right]  \cdot e^{-b\beta^{t-1}} \\
+		\end{aligned}
+		$$
+
+Note that the distribution for $\theta_j |\alpha,\beta$ is known, but the distributions for $\alpha| \pmb{\theta}, \beta$ and $\beta| \pmb{\theta}, \alpha$ are unknown (to the best of our knowledge), and therefore we will use MH algorithm to sample from them.
+
+\subsubsection*{Technical notes for Bayesian models II(a), II(b).}
+We recall that in order to use MH, we need to have a \emph{Jumping distribution} (JD) that would suggest new values of $\alpha$ (or $\beta$). Since  $\alpha$ and $\beta$ are parameters of beta distribution, they must be positive, therefore the their distribution should have positive support. Since we don't have any scientific knowledge about $\alpha$ and $\beta$, we propose the following JD's: $\alpha^*\sim Gamma(3\alpha^{t},  3)$ and $\beta^*\sim Gamma(3\beta^{t},  3)$. This way the mean of the JD always equals to $\alpha^{t}$ and $\beta^{t}$ respectively.\\
+~\\
+The process of using MH algorithm requires computing the following ratio:
+		$$
+		\begin{aligned}
+			r = \frac{ P(\alpha^*| \pmb{\theta}^{t-1}, \beta^{t-1})/ Gamma(\alpha^*, 3\alpha^{t-1},  1/3)}{  P(\alpha^{t-1}| \pmb{\theta}^{t-1}, \beta^{t-1})/ Gamma(\alpha^{t-1}, 3\alpha^{*},  1/3) }\\
+		\end{aligned}
+		$$
+In order to avoid computational overflow when computing densities we use $log$'s. This would not have been a problem if our $\theta_j^{t}$ were never equal to $0$ or $1$. It turns out that sometimes $R$ does sample $0$ or $1$ for this particular data, and then we have a problem of computing $log(\theta_j)$ or $log(1 - \theta_j)$ in the $log$'s of the un-normalized likelihoods:
+		$$
+		\begin{aligned}
+			l(\alpha^{t}| \pmb{\theta}^{t}, \beta^{t-1})  &\propto \sum_{j=1}^{N_c} \left[    (\alpha^{t-1}-1)  log(\theta_j^{t}) + log (\Gamma(\alpha^{t-1} + \beta^{t-1})) - log(\Gamma(\alpha^{t-1}))\right] -  a\alpha^{t-1} \\
+			l(\beta^{t}| \pmb{\theta}^{t}, \alpha^{t})  &\propto \sum_{j=1}^{N_c} \left[(\beta^{t-1}-1) log(1 - \theta_j^{t})  + log(\Gamma(\alpha^{t} + \beta^{t-1})) - log(\Gamma(\beta^{t-1}))\right]  -b\beta^{t-1} \\
+		\end{aligned}
+		$$
+From the above, we see that if one of the $\theta_j$'s is $0$ then the expression for $\alpha$ cannot be computed. The same happens when  $\theta_j$'s is $1$ for $\beta$. The fact that $\theta_j=0$ means that both, $P(\alpha^*| \pmb{\theta}^{t-1}, \beta^{t-1})$ and $P(\alpha^{t-1}| \pmb{\theta}^{t-1}, \beta^{t-1})$ are equal to $0$. In such case, we assume that $l(\alpha^{*}| \pmb{\theta}^{t}, \beta^{t-1})$ and $l(\alpha^{t-1}| \pmb{\theta}^{t}, \beta^{t-1})$ are the same, so our ratio becomes:
+		$$
+		\begin{aligned}
+			r = \frac{ Gamma(\alpha^{t-1}, ~3\alpha^{*},  3)}{   Gamma(\alpha^{*}, ~3\alpha^{t-1},  3) }\\
+		\end{aligned}
+		$$
+The same reasoning is applied when computing the ratio for $\beta$ when $1-\theta_j=0$.
+
+\subsection*{The plan of addressing the requirements of the project.}
+Except for convergence plots all statistics were performed on $5,000$ samples (after discarding the first $5,000$ burn-in samples). Statistical language \emph{R} was used for all computations; the code was provided in the Appendix.\\
+In addition to using \emph{R}, model \textbf{II(a)} was also computed using \emph{OpenBUGs}. The code and the results of the \emph{OpenBUGs} analysis was provided in the Appendix.\\
+
+\subsubsection*{Model checking and model selection.}
+Model checking was implemented in several ways. For \textbf{model II(a)} and \textbf{model II(b)} we checked the convergence by plotting and evaluating the trace of each parameter for the three MCMC chains. The convergence was achieved if all three chains were ovelapping and \emph{stable} around a certain value.\\
+Convergence was also assessed by computing $\hat{R} = \sqrt{\frac{\hat{var}^+ (\psi|y)}{W}}$ on 12 chains and plotting it for increasing length of each chain.\\
+When assessing model fit, we computed posterior predictive \emph{p-values}. The values of $0.05$ or less were considered a poor fit. Third, we computed \emph{WAIC} for each of the \emph{Bayesian} models. The model with the lowest \emph{WAIC} was considered the best.
+
+\subsubsection*{Sensitivity analysis for the prior distributions.}
+The difference between separate analyses \textbf{model I(a)} and \textbf{model I(b)} and between hierarchical analyses \textbf{model II(a)} and \textbf{model II(b)} were compared. The priors with parameters of $Beta$ distribution less than one allow the probability to be located away from $\frac{1}{2}$. The priors with parameters of $Beta$ distribution greater than one allow the probability to be located around $\frac{1}{2}$.  Although both priors are quite uninformative, we expect the estimates to be different in these two cases. The extend of the difference was presented as the \emph{sensitivity analysis} for different prior distributions.
+
+\subsubsection*{Posterior summaries, summary statistics.}
+For each model and each $\theta_j$ posterior densities were plotted. Our summary statistics for each $\theta_j$ included mean, standard deviation, interquartile range, median, $2.5^{th}$ and $97.5^{th}$ percentiles, which were also used as a \emph{credible interval}(CI) for the mean.\\
+The estimates for all $\theta_j$'s together with their CI's were plotted for every model, so the they could be visually compared for each cluster.
+
+\subsection*{Testing the null hypothesis.}
+In order to check the null hopothesis, we computed the \emph{p-value} for each $\theta_j$. The \emph{p-values} were computed as probabilities of the posterior predictive propabilities being greater than the \emph{null} probability. We rejected the null if probability of being greater than the \emph{null} was $0.05$ or less.\\
+Note that although our hypothesis was one sided, we displayed $95\%$ two-sided credible intervals.
+
+\section*{Results}
+
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.5>>=
+################################################ statistical analysis
+################################################ statistical analysis
+################################################ statistical analysis
+nSim = 10000
+burnIn = round(nSim/2)
+bd = baydata[1:nrow(baydata),]
+yi = bd$bestPicNom
+ni = bd$clusterSize
+
+set.seed(2017)
+################################################ run Gibbs on three chains
+################################################ run Gibbs on three chains
+################################################ run Gibbs on three chains
+###################### model 0
+###################### model 0
+###################### model 0
+######## the following prior allows probability to be more of the extreme (0 or 1)
+######## the following prior allows probability to be more of the extreme (0 or 1)
+res01 = separBayesAnalysis(fdata=baydata, a0=1/10, b0=1/10, nSim=10000)
+######## the following prior allows probability to be more in the middle (1/2)
+######## the following prior allows probability to be more in the middle (1/2)
+res02 = separBayesAnalysis(fdata=baydata, a0=2, b0=2, nSim=10000)
+
+###################### model 1
+###################### model 1
+###################### model 1
+######## the following prior allows probability to be more of the extreme (0 or 1)
+######## the following prior allows probability to be more of the extreme (0 or 1)
+a0 = 1; b0=10
+tmp1 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, shape=.1, startingParam=c(rep(.5, length(yi)), .5, .5), nSim = nSim)
+tmp2 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, startingParam=c(rep(.1, length(yi)), .1, .1), nSim = nSim)
+tmp3 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, startingParam=c(rep(.9, length(yi)), .9, .9), nSim = nSim)
+listOfEff11 = list(res1 = tmp1[["effSampleSize"]], res2 = tmp2[["effSampleSize"]], res3 = tmp3[["effSampleSize"]])
+listOfRes11 = list(res1 = tmp1[["paramMatr"]], res2 = tmp2[["paramMatr"]], res3 = tmp3[["paramMatr"]])
+
+######## the following prior allows probability to be more in the middle (1/2)
+######## the following prior allows probability to be more in the middle (1/2)
+a0 = 2; b0=1
+tmp1 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, shape=.1, startingParam=c(rep(.5, length(yi)), .5, .5), nSim = nSim)
+tmp2 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, startingParam=c(rep(.1, length(yi)), .1, .1), nSim = nSim)
+tmp3 = gibbsAndMH1(Ys = yi, Ns=ni, a0=a0, b0=b0, startingParam=c(rep(.9, length(yi)), .9, .9), nSim = nSim)
+listOfEff12 = list(res1 = tmp1[["effSampleSize"]], res2 = tmp2[["effSampleSize"]], res3 = tmp3[["effSampleSize"]])
+listOfRes12 = list(res1 = tmp1[["paramMatr"]], res2 = tmp2[["paramMatr"]], res3 = tmp3[["paramMatr"]])
+@
+}}
+
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=9>>=
+bayes0Prior1Res = bayesAnalysisOne(baydata=baydata, list(res2=res01), plotNum = 1000, nSim = 10000, plotTrace=FALSE)
+bayes0Prior2Res = bayesAnalysisOne(baydata=baydata, list(res2=res02), nSim = 10000, plotTrace=FALSE)
+@
+
+\subsection*{Model convergence}
+In this section we show that \emph{Bayesian} models \textbf{II(a)} and \textbf{II(b)} have converged. Table \ref{table:EffectiveSample} shows the effective sample size for each model and each chain. There are three chains that differ by their starting value of $\pmb{\theta}$. Because our sampling mechanizm used \emph{Metropolis-Hasting} algorithm for two paramters $\alpha$ and $\beta$, the acceptence rate could be defined in different ways. We computed our acceptence rate (or effective sample size) based on the following rule. If either $\alpha^t = \alpha^*$ \textbf{or} $\beta^t = \beta^*$ we counted $\pmb{\theta}^t = (\theta_1^t, \theta_2^t, ..., \theta_{10}^t, \alpha^t, \beta^t)$ as a new accepted parameter point. As seen from table \ref{table:EffectiveSample} the best acceptence rate was observed for $\pmb{\theta}=\frac{1}{2}$, about $87\%$. For other initial values the acceptence rate was about $27\%$. We included the burn-in part in the acceptence rate calculations.\\
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, results="asis", fig.align="center">>=
+####################### effective sample size
+####################### effective sample size
+effSampleTable = data.frame(c(), c(), c())
+effSampleTable = rbind(effSampleTable, sapply(listOfEff11, sum))
+effSampleTable = rbind(effSampleTable, sapply(listOfEff12, sum))
+colnames(effSampleTable) =  paste("$", paste("\\pmb{\\theta}=", c("\\frac{1}{2}", ".1", ".9"), sep=""), "$", sep="")
+rownames(effSampleTable) = c("Hierarchical Bayesian Analysis (a)", "Hierarchical Bayesian Analysis (b)")
+latex(object = effSampleTable, file="", title="Model, based on 10,000 samples", label="table:EffectiveSample", where="!h", caption="Effective sample size for each model and each of the three chains. The chains differ by their starting value of $\\pmb{\\theta}$.")
+@
+}}
+
+Figures \ref{fig:RThing1} and \ref{fig:RThing2} plot $\hat{R} = \sqrt{\frac{\hat{var}^+ (\psi|y)}{W}}$, a measure of how the overall variance of each paramter can be reduced with an icreasing number of samles. This measure was computed on $5,000$ simulations after discarding the first $5,000$ simulations. Each value was computed on 12 chains with increasing length $250$, $500$, $750$, $1000$, and $1250$. All plot approach $1$ implying a very good convergence.\\
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% convergence based on R
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% convergence based on R
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% convergence based on R
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=2>>=
+tmp = convROverLength(listOfRes11)
+@
+}}
+\caption{Model \textbf{I(b)}: Convergence measured as $\hat{R} = \sqrt{\frac{\hat{var}^+ (\psi|y)}{W}}$ (formula $(11.4)$ in the main textbook). Each point shows value $\hat{R}$ computed on 12 chains with increasing length $250$, $500$, $750$, $1000$, and $1250$.}
+\label{fig:RThing1}
+\end{figure}
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=2>>=
+tmp = convROverLength(listOfRes12)
+@
+}}
+\caption{Model \textbf{II(b)}: Convergence measured as $\hat{R} = \sqrt{\frac{\hat{var}^+ (\psi|y)}{W}}$ (formula $(11.4)$ in the main textbook). Each point shows value $\hat{R}$ computed on 12 chains with increasing length $250$, $500$, $750$, $1000$, and $1250$.}
+\label{fig:RThing2}
+\end{figure}
+
+
+These picture show that the \emph{hyper-paramters} have the slowest convergence. Plots on figure \ref{fig:AlphaBeta} show trace plots for the \emph{hyper-paramters} for models \textbf{I(a)} and \textbf{I(b)}. We see that for paramter $\beta$ in model \textbf{I(a)} we still observe very large values round $6000^{th}$ iteration for intitial values $\pmb{\theta}=.1$ (red) and $\pmb{\theta}=.9$ (blue). For initial paramters $\pmb{\theta}=\frac{1}{2}$ (orange) we don't observe large values.\\
+Figures \ref{fig:TraceBayes1A} and \ref{fig:TraceBayes1B} display traces for their parameters. In order to make the plots more readable, we plotted only the first $1000$ values (the first $1000$ values of the burn-in sample). Looking at the first few values allows us to \emph{display} the convergence rate: the red and blue plots look like steps, which means that they were rejected often.\\
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% trace plots for alpha and beta
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% trace plots for alpha and beta
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% trace plots for alpha and beta
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=7>>=
+par(mfrow=c(4, 1), mar=c(2, 3, 2, 0.5))
+plot(c(1,nrow(listOfRes11[[1]])), c(0, max(1, max(sapply(listOfRes11, function(x)max(x[, 11]))))), type="n", ylab="")
+cols = c("orange", "red", "blue")
+for(i in 1:3){
+  lines(1:nrow(listOfRes11[[1]]), listOfRes11[[i]][,11], col=cols[i])
+}
+mtext("Model I(a),", side = 3, line = 0, at=0, font=1)
+mtext(expression(alpha), at=800, side = 3, line = 0, font=2)
+plot(c(1,nrow(listOfRes11[[1]])), c(0, max(1, max(sapply(listOfRes11, function(x)max(x[, 12]))))), type="n", ylab="")
+cols = c("orange", "red", "blue")
+for(i in 1:3){
+  lines(1:nrow(listOfRes11[[1]]), listOfRes11[[i]][,12], col=cols[i])
+}
+mtext("Model I(a),", side = 3, line = 0, at=0, font=1)
+mtext(expression(beta), at=800, side = 3, line = 0, font=2)
+plot(c(1,nrow(listOfRes11[[1]])), c(0, max(1, max(sapply(listOfRes12, function(x)max(x[, 11]))))), type="n", ylab="")
+cols = c("orange", "red", "blue")
+for(i in 1:3){
+  lines(1:nrow(listOfRes11[[1]]), listOfRes12[[i]][,11], col=cols[i])
+}
+mtext("Model I(b),", side = 3, line = 0, at=0, font=1)
+mtext(expression(alpha), at=800, side = 3, line = 0, font=2)
+plot(c(1,nrow(listOfRes11[[1]])), c(0, max(1, max(sapply(listOfRes12, function(x)max(x[, 12]))))), type="n", ylab="")
+cols = c("orange", "red", "blue")
+for(i in 1:3){
+  lines(1:nrow(listOfRes11[[1]]), listOfRes12[[i]][,12], col=cols[i])
+}
+mtext("Model I(b),", side = 3, line = 0, at=0, font=1)
+mtext(expression(beta), at=800, side = 3, line = 0, font=2)
+@
+}}
+\caption{Model \textbf{II(b)}: Traces plots of \emph{hyper-parameters} $\alpha$ and $\beta$ for different initial parameter values: $\pmb{\theta}=\frac{1}{2}$ (orange), $\pmb{\theta}=.1$ (red), and $\pmb{\theta}=.9$ (blue).}
+\label{fig:AlphaBeta}
+\end{figure}
+
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=9>>=
+bayes1Prior1Res = bayesAnalysisOne(baydata=baydata, listOfRes11, plotNum = 1000, nSim = 10000)
+@
+}}
+\caption{Model \textbf{II(a)}: Traces plots of the first $1000$ samples of all parameters for different initial parameter values: $\pmb{\theta}=\frac{1}{2}$ (orange), $\pmb{\theta}=.1$ (red), and $\pmb{\theta}=.9$ (blue).}
+\label{fig:TraceBayes1A}
+\end{figure}
+~\\
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=7, fig.height=9>>=
+bayes1Prior2Res = bayesAnalysisOne(baydata=baydata, listOfRes12, plotNum = 1000, nSim = 10000)
+@
+}}
+\caption{Model \textbf{II(b)}: Traces plots of the first $1000$ samples of all parameters for different initial parameter values: $\pmb{\theta}=\frac{1}{2}$ (orange), $\pmb{\theta}=.1$ (red), and $\pmb{\theta}=.9$ (blue).}
+\label{fig:TraceBayes1B}
+\end{figure}
+
+
+
+
+
+\clearpage
+
+\subsection*{Parameter distribution}
+We now compare the distribution of the probabilities of interest for the three methods. Figures \ref{fig:ParDLik}, \ref{fig:ParDBay0a}, \ref{fig:ParDBay0b}, \ref{fig:ParDBay1a}, and \ref{fig:ParDBay1b} show the likelihood function, and the distribution of the parameters for models \textbf{I(a)}, \textbf{I(b)}, \textbf{II(a)}, and \textbf{II(b)} respectively.
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.5>>=
+################################################ likelihood analysis
+################################################ likelihood analysis
+likRes = likAnalysis(baydata)
+@
+}}
+\caption{Likelihood analysis. Likelihood functions are in black. Point estimates are denoted by the vertical green line. The \emph{null} hypothesis is denoted by the vertical dotted line. The orange band shows the width of the likelihood analog of the $95\%$ confidence interval.}
+\label{fig:ParDLik}
+\end{figure}
+
+
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.7>>=
+plotPostPredDens(res = res01, bd = baydata, spacer = .7)
+@
+}}
+\caption{Model \textbf{I(a)}. Posterior densitities are plotted as histograms. The green dot denotes the observed probability ${P}_{W_{BA}|BP,~j}$. The vertical dotted line denotes the \emph{null} probability.}
+\label{fig:ParDBay0a}
+\end{figure}
+
+
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.7>>=
+plotPostPredDens(res = res02, bd = baydata, spacer = .7)
+@
+}}
+\caption{Model \textbf{I(b)}. Posterior densitities are plotted as histograms. The green dot denotes the observed probability ${P}_{W_{BA}|BP,~j}$. The vertical dotted line denotes the \emph{null} probability.}
+\label{fig:ParDBay0b}
+\end{figure}
+
+
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.7>>=
+plotPostPredDens(res = listOfRes11[["res2"]], bd = baydata, spacer = .7)
+@
+}}
+\caption{Model \textbf{II(a)}. Posterior densitities are plotted as histograms. The green dot denotes the observed probability ${P}_{W_{BA}|BP,~j}$. The vertical dotted line denotes the \emph{null} probability.}
+\label{fig:ParDBay1a}
+\end{figure}
+
+
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=3.7>>=
+plotPostPredDens(res = listOfRes12[["res2"]], bd = baydata, spacer = .7)
+@
+}}
+\caption{Model \textbf{II(b)}. Posterior densitities are plotted as histograms. The green dot denotes the observed probability ${P}_{W_{BA}|BP,~j}$. The vertical dotted line denotes the \emph{null} probability.}
+\label{fig:ParDBay1b}
+\end{figure}
+
+Tables \ref{table:goal01}, \ref{table:goal02}, \ref{table:goal21}, \ref{table:goal22} show the model parameters for the four \emph{Bayesian} models.
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, results="asis", fig.align="center">>=
+meansAndStuff01 = apply(res01, 2, tableReport)
+meansAndStuff02 = apply(res02, 2, tableReport)
+meansAndStuff11 = apply(listOfRes11[["res2"]], 2, tableReport)
+meansAndStuff12 = apply(listOfRes12[["res2"]], 2, tableReport)
+tmp = as.data.frame(t(round(meansAndStuff01, 2)))
+rownames(tmp) = paste("$", paste(rep("\\theta_{"), 1:10, "}", sep=""), "$", sep="")
+latex(object = tmp, file="", title="Parameter", label="table:goal01", where="!h", caption="Parameters for Bayesian model I(a).")
+tmp = as.data.frame(t(round(meansAndStuff02, 2)))
+rownames(tmp) = paste("$", paste(rep("\\theta_{"), 1:10, "}", sep=""), "$", sep="")
+latex(object = tmp, file="", title="Parameter", label="table:goal02", where="!h", caption="Parameters for Bayesian model I(b).")
+tmp = as.data.frame(t(round(meansAndStuff11, 2)))
+rownames(tmp) = c(paste("$", paste(rep("\\theta_{"), 1:10, "}", sep=""), "$", sep=""), c("$\\alpha$", "$\\beta$"))
+latex(object = tmp, file="", title="Parameter", label="table:goal21", where="!h", caption="Parameters for Bayesian model II(a).")
+tmp = as.data.frame(t(round(meansAndStuff11, 2)))
+rownames(tmp) = c(paste("$", paste(rep("\\theta_{"), 1:10, "}", sep=""), "$", sep=""), c("$\\alpha$", "$\\beta$"))
+latex(object = tmp, file="", title="Parameter", label="table:goal22", where="!h", caption="Parameters for Bayesian model II(b).")
+@
+}}
+
+\clearpage
+
+\subsection*{Model fit}
+Table \ref{table:goal4} shows the P-values of model fit based on predictive distribution for each Bayesian model. Since none of the p-values is less $0.05$, we conclude that for all four models the fit seems to be good.
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, results="asis", fig.align="center">>=
+modelFit = data.frame(c(), c(), c(), c(), c(), c(), c(), c(), c(), c())
+modelFit = rbind(modelFit, bayes0Prior1Res[1:10, "fitPVal"])
+modelFit = rbind(modelFit, bayes0Prior2Res[1:10, "fitPVal"])
+modelFit = rbind(modelFit, bayes1Prior1Res[1:10, "fitPVal"])
+modelFit = rbind(modelFit, bayes1Prior2Res[1:10, "fitPVal"])
+colnames(modelFit) =  paste("$", paste(rep("\\theta_{"), 1:10, "}", sep=""), "$", sep="")
+rownames(modelFit) = c("Separate Bayesian Analysis (a)", "Separate Bayesian Analysis (b)", "Hierarchical Bayesian Analysis (a)", "Hierarchical Bayesian Analysis (b)")
+latex(object = modelFit, file="", title="Model", label="table:goal4", where="!h", caption="P-values of model fit based on predictive distribution for each of the four Bayesian models.")
+@
+}}
+If you look at figure \ref{fig:ParDBay0b}, the observed probability (the green dot) is often on the outskirts of the distribution. The question is why the posterior predictive p-values are so good. Well, because when we deal with disrete values it is a little tricky. For example when we predict a value for cluster $(0,5)$ because the sample size is so small ($1$) the predicted value is going to be $1$ with probability of about $0.6$. This tells us that for smaller sample size, the method of the posterior predictive p-value is not so helpful. Instead, it is better to look at the plots similar to Figure \ref{fig:ParDBay0b}, and to compute something like a percentile of the observed probability relatively to the posterior paramter distribution:
+
+
+
+\subsection*{Model selection}
+Table \ref{table:goal3} shows the $WAIC$ values for the four \emph{Bayesian} models. We observe that model \textbf{I(a)} has the best $WAIC$. This is probably due to the fact that the \emph{clusters} are inherently different due to the fact that the number of movies nominated for $BP$ is different in each cluster. Because in hierarchical models the prior is shared by all clusters, the resulting posterior is not very tailored toward the differences between clusters.
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, results="asis", fig.align="center">>=
+modelSel = data.frame(WAIC_1=c(), p_WAIC_1=c(), WAIC_2=c(), p_WAIC_2=c(), lppd=c())
+modelSel = rbind(modelSel, round(WAIC(Rj=yi, Nj=ni, simThetas=res01[burnIn:nSim, 1:10], dataDistr=dbinom), 2))
+modelSel = rbind(modelSel, round(WAIC(Rj=yi, Nj=ni, simThetas=res02[burnIn:nSim, 1:10], dataDistr=dbinom), 2))
+modelSel = rbind(modelSel, round(WAIC(Rj=yi, Nj=ni, simThetas=listOfRes11[["res2"]][burnIn:nSim, 1:10], dataDistr=dbinom), 2))
+modelSel = rbind(modelSel, round(WAIC(Rj=yi, Nj=ni, simThetas=listOfRes12[["res2"]][burnIn:nSim, 1:10], dataDistr=dbinom), 2))
+# round(WAIC(Rj=yi, Nj=ni, simThetas=listOfRes21[["res2"]][burnIn:nSim, 1:10], dataDistr=dbinom), 2)
+rownames(modelSel) = c("Separate Bayesian Analysis (a)", "Separate Bayesian Analysis (b)", "Hierarchical Bayesian Analysis (a)", "Hierarchical Bayesian Analysis (b)")
+colnames(modelSel) = c("WAIC.1", "p.WAIC.1", "WAIC.2", "p.WAIC.2", "lppd")
+latex(object = modelSel, file="", title="Model", label="table:goal3", where="!h", caption="WAIC for the four Bayesian models.")
+@
+}}
+
+\subsection*{Checking the null hypothesis}
+Figure \ref{fig:AllThree} compares all five models. Parameter estimates are the dots, and the lines are credible intervals. Green and blue stand for no evidence against the \emph{null}. Orange and red mean that there is evidence against the \emph{null}. Note that the lines represent the $95\%$ credible intervals. But the decision to accept or to reject the \emph{null} is based on the \textbf{one-sided} probability. This is why some dots are orange even though the credible intervals overlap with the dotted line representing the \emph{null} probability.\\
+We observe that for the large \emph{cluster} size (\emph{patterns} $(2,5)$ and $(3,5)$) all models agree in rejecting the \emph{null}.\\
+We also observe that for the smallest samples model \textbf{II(b)} is very much influenced by the prior, which pulls the probability estimate to the middle.\\
+We also observe that in some cases (mostly with large sample size) the credible interval is more narrow for hierarchical model, which can be probably explained by the fact that hierarchical models use information from the whole sample.
+
+\begin{figure}[!h]
+{{\scriptsize
+<<echo=FALSE, warning=FALSE, message=FALSE, comment=NA, fig.width=8, fig.height=4>>=
+par(mfrow=c(2, 5), mar=c(3, 3, 3, 1))
+for(i in 1:length(yi)){
+	plot(x = c(0, 1), y=c(-.05, 1.05), type="n", axes=FALSE)
+	box(col="gray")
+	rect(xleft=-1, ybottom=-1, xright=2, ytop=2, col = gray(.85))
+	axis(side=c(2, 4), col="gray")
+	abline(h=baydata[i, "expectedProb"], col="darkred", lty=3)
+	alternToTableReport(x=likRes[i,], xCoord=.1, pointEst=baydata[i, "observedProb"], text="Lik")
+	alternToTableReport(x=bayes0Prior1Res[i,], xCoord=.4, pointEst=baydata[i, "observedProb"], text="B  I(a)")
+	alternToTableReport(x=bayes0Prior2Res[i,], xCoord=.5, pointEst=baydata[i, "observedProb"], text="B  I(b)")
+
+	alternToTableReport(x=bayes1Prior1Res[i,], xCoord=.8, pointEst=baydata[i, "observedProb"], text="B II(a)")
+	alternToTableReport(x=bayes1Prior2Res[i,], xCoord=.9, pointEst=baydata[i, "observedProb"], text="B II(b)")
+	mtext(text = paste("Pattern = (", rownames(bd)[i], ")", sep=""), side = 3, at=0, adj=0, line = .8, cex=.7, col=gray(.3))
+	mtext(text = paste("Cluster size =", bd$clusterSize[i]), side = 3, at=0, adj=0, line = 0.1, cex=.7, col=gray(.3))
+}
+@
+}}
+\caption{Comparison of all five models. Parameter estimates are the dots, and the lines are credible intervals. Green and blue stand for no evidence against the \emph{null}. Orange and red mean that there is evidence against the \emph{null}. Note that the lines represent the $95\%$ credible intervals. But the decision to accept or to reject the \emph{null} is based on the \textbf{one-sided} probability. This is why some dots are orange even though the credible intervals overlap with the dotted line representing the \emph{null} probability.}
+\label{fig:AllThree}
+\end{figure}
+
+
+\section*{To Do List}
+\begin{enumerate}
+	\item add predictive values plot
+	\item Do OpenGUBs for II(a) and provide the table and the code in the Appendix
+	\item compare the results with OpenBUGs and mention this the results of comparison
+	\item make a presentation
+	\item write discussion
+	\item add references
+	\item Provide all R code in the appendix
+\end{enumerate}
+
+  % @Manual{,
+  %   title = {R: A Language and Environment for Statistical Computing},
+  %   author = {{R Core Team}},
+  %   organization = {R Foundation for Statistical Computing},
+  %   address = {Vienna, Austria},
+  %   year = {2016},
+  %   url = {https://www.R-project.org/},
+  % }
+
+
+\clearpage
+
+\section*{Discussion and future work}
+The OSCAR data were analized using \emph{likelihood} method and \emph{Bayesian} method. Application of the statistical sampling methods was a success, and the combination of \emph{Gibbs sampler} and \emph{Metropolis-Hasting} algorithm were robust and converged quickly. All models performed well judging from their predictive performance.\\
+The comparison of methods show that likelihood was more precise in case of extreme probabilities but had much wider range of uncertainty. As expected, using \emph{Bayesian} methods was epecially useful for smaller \emph{clusters}. This was due to the fact that when using \emph{Bayesian} methods we effectively add sample size, which was especially felt in smaller \emph{clusters}. On the other hand, a wrong choice of prior could cause a bigger problem for smaller \emph{clusters}, and therefore choosing the prior carefully is especially important in smaller \emph{clusters}. For this particular data, a better prior was the one that provided that was flexible enough to allow extreme probabilites. When comparing saparate analysis and hierarchical models, we concluded that although they might be less precise, they utilize information from the who sample, and therefore often can be more efficient.\\
+
+~\\
+The quesiton remains, how to take into account the difference in clusters more efficiently and at the same time to take advantage of the hierarchical model. This is the goal of our future work. Our next model of interest is the following:
+		$$
+		\begin{aligned}
+			R_j &\sim Binomial\left(\theta_j, N_j \right)\\
+			\theta_j &=\frac{1}{1+e^{-C_j - \delta_j}},~where~~~C_j = -log\left(\frac{n_j}{r_j}-1\right)~(see~explanation~below)\\
+			\delta_j &\sim N(\mu, \tau)\\
+			\mu &\sim N(0, sd=100)\\
+			\tau &\sim Gamma(100, rate=100)\\
+		\end{aligned}
+		$$
+		In this model, $C_j$ is a constant and is different for each cluster. This constant is introduced in order to utilize the knowledge that the probability of the winning a BA award while being a BP nominee under the \emph{null} is $\frac{r_j}{n_j}$. So $C_j$ can be thought of as an offset of some sort. Parameter $\delta_j$ therefore is a deviation from the \emph{null}. So we have:
+		$$
+		\begin{aligned}
+			\frac{1}{1+e^{-C_j}} &= \frac{r_j}{n_j}\\
+			e^{-C_j} &= \frac{n_j}{r_j}-1\\
+			C_j &= -log\left(\frac{n_j}{r_j}-1\right)\\
+		\end{aligned}
+		$$
+This model utilizes the information about the proportion of BA nominees in the pool of the BA nominees. In addition, this formulation allows to introduce other covariates, if the sample size allows.
+
+
+If the acceptence rate was defined as $\alpha^t = \alpha^*$ \textbf{and} $\beta^t = \beta^*$, then it would be much lower ($41\%$ for $\theta_i=\frac{1}{2}$ and about $2\%$ for $\theta_i=.1,.9$, not presented here). In our case, it seems like 
+
+
+\section*{Appendix}
+\subsection*{Python code for processing the data from the OSCAR website}
+{{\scriptsize
+\begin{verbatim}
+def getYearAndNumber(charStr):
+  charSplt = charStr.split(" ")
+  return (charSplt[0],charSplt[1][:-1])
+
+def parceNominee(line, infoSep):
+  songSep = " from "
+  danceSep = [" number from ", " numbers from "]
+  first = line.split(infoSep)[0]
+  second = line.split(infoSep)[1]
+  if second.find("{\"") != -1:
+    name = first.strip()
+    movie = second.split("{")[0].strip()
+    roleOrSong = second[second.find("{\"")+2:second.find("\"}")]
+  elif first[0] != "\"" and second[0] != "\"":
+    name = second.strip()
+    movie = first.strip()
+    roleOrSong = ""
+  elif first[0] == "\"":
+    name = second.strip()
+    indexOfSongSep = line.rfind(songSep)
+    movie = first[indexOfSongSep+len(songSep):]
+    roleOrSong = line[:indexOfSongSep].strip().replace("\"", "")
+  elif second[0] == "\"":
+    name = first.strip()
+    indexOfDanceSep = max(second.rfind(danceSep[0]), second.rfind(danceSep[1]))
+    length = (second.rfind(danceSep[0])>-1) * len(danceSep[0]) + (second.rfind(danceSep[1])>-1) * len(danceSep[1])
+    movie = second[indexOfDanceSep+length:].strip()
+    roleOrSong = second[:indexOfDanceSep].strip().replace("\"", "")
+  return (name, movie, roleOrSong)
+    
+
+import os
+
+dataInDirName = "../data/oscarByYear"
+dataOutDirName = "../data"
+fileList = os.listdir(dataInDirName)
+
+categ = ""
+winner = False
+name = ""
+movie = ""
+roleOrSong = ""
+note = ""
+line=""
+year=""
+oscarNum=""
+movieActSep = " -- "
+cost = -1
+rFileSep="\", \""
+
+#fileList = ['oscar79.csv', 'oscar80.csv']
+fileList = os.listdir(dataInDirName)
+fw = open(os.path.join(dataOutDirName, "oscarDataInCommaSepForm.csv"), "w")
+fw.write("\"movie\", \"categ\", \"winner\", \"name\", \"roleOrSong\", \"note\", \"year\", \"oscarNum\"\n")
+for n in fileList:
+  fr = open(os.path.join(dataInDirName, n), "r")
+  line = fr.readline()
+  while not line[0].isdigit():
+    line = fr.readline()
+  (year, oscarNum) = getYearAndNumber(line)
+  print lineCounter
+  print "********************************* beginning of ", year, n
+  readTheRest = True
+  printYesNo = True
+  lineCounter = 0
+  while readTheRest and line:
+    #print line[0:5], `winner`, movie, categ
+    nextLine = fr.readline()
+    if nextLine=="SPECIAL AWARD\n" or nextLine=="HONORARY AWARD\n":
+      readTheRest=False
+    ###----------------if the first word consists of capital letter with no " -- " it is a category
+    if line.split(" ")[0].isupper() and (line[:-1]).split(" ")[0].isalpha() and line.find(movieActSep)==-1:
+      categ = line[:-1]
+    elif line.find(movieActSep)!=-1:
+      (name, movie, roleOrSong) = parceNominee(line, movieActSep)
+      #print line[0:5], `winner`, movie, categ
+      #print (name, movie, roleOrSong)
+      if nextLine[0:6] == "[NOTE:":
+        note = nextLine[:-1]
+      listToWrite = [movie, categ, `winner`, name, roleOrSong, note, year, oscarNum.strip()]
+      listToWrite = map(lambda l, o=",", n=";": l.replace(o,n).strip(), listToWrite)
+      lineToWrite = rFileSep.join(listToWrite)
+      #print line[:-1]
+      #print `winner`, "\t", movie, "\t", categ, "\t", name, "\t", roleOrSong
+      lineToWrite = "\"" + lineToWrite + "\"\n"
+      fw.write(lineToWrite)
+      lineCounter += 1
+      winner = False
+      note = ""
+    elif line=="*\t\n" and readTheRest:
+      winner = True
+    else:
+      winner = False
+    line = nextLine
+  
+  fr.close()
+
+print lineCounter
+fw.close()
+
+################################################################################
+### Replace all characters with code greater than nonASCII=128 with replStr="?"
+################################################################################
+
+nonASCII = 128
+replStr = "?"
+fileNameFrom = os.path.join(dataOutDirName, "oscarDataInCommaSepForm.csv")
+fileNameTo = os.path.join(dataOutDirName, "oscarDataInCommaSepFormASCII.csv")
+fr = open(fileNameFrom, "r")
+fw = open(fileNameTo, "w")
+line = fr.readline()
+lineCount = 1
+replStr = "?"
+numOfReplChars = 0
+badCharList = []
+while line:
+  # make a list of chars
+  l = list(line)
+  # convert char to int
+  lo = map(lambda x: ord(x), l)
+  # find all indices with value >=nonASCII
+  loi = filter(lambda i, val=nonASCII, x=lo: x[i]>=val, range(len(lo)))
+  for i in loi:
+    numOfReplChars += 1
+    badCharList.append(line[i])
+    line = line.replace(line[i], replStr)
+  fw.write(line)
+  line = fr.readline()
+  lineCount = lineCount+1
+
+fr.close()
+fw.close()
+
+print numOfReplChars, " char. have been replaced\n"
+print badCharList
+\end{verbatim}
+}}
+
+\end{document}   
+
+
+
+
+
+
+
+
