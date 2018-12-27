@@ -39,13 +39,20 @@ def parceNominee(line, infoSep):
     
 
 import os
+import datetime
+import re
+
+
+todaysDate = str(datetime.datetime.today())
+todaysDateStr = str(todaysDate).split()[0]
 
 #os.getcwd()
 #os.system('mkdir today')
 
-currFolderName = "/Users/svetlanaeden/Documents/GRADSCHOOL/2014_Fall/Robert/oscar/code"
-dataInDirName = "../data/oscarByYear"
-dataOutDirName = "../data"
+currFolderName = "/Users/svetlanaeden/stuff/StatStuff/OSCAR_STUFF"
+dataInDirName = "./oscarByYear"
+dataOutDirName = "."
+dataOutFileName = os.path.join(dataOutDirName, "oscarDataInCommaSepForm_" +  todaysDateStr + ".csv")
 #os.path.join(pathfile,"output","log.txt")
 #os.remove(os.path.join(dataInDirName,".DS_Store"))
 
@@ -68,7 +75,7 @@ rFileSep="\", \""
 
 #fileList = ['oscar79.csv', 'oscar80.csv']
 fileList = os.listdir(dataInDirName)
-fw = open(os.path.join(dataOutDirName, "oscarDataInCommaSepForm.csv"), "w")
+fw = open(dataOutFileName, "w")
 fw.write("\"movie\", \"categ\", \"winner\", \"name\", \"roleOrSong\", \"note\", \"year\", \"oscarNum\"\n")
 for n in fileList:
   fr = open(os.path.join(dataInDirName, n), "r")
@@ -105,8 +112,9 @@ for n in fileList:
       lineCounter += 1
       winner = False
       note = ""
-    elif line=="*\t\n" and readTheRest:
+    elif (line=="*\t\n" or line=="*\n") and readTheRest:
       winner = True
+      # print line
     else:
       winner = False
     line = nextLine
@@ -122,8 +130,9 @@ fw.close()
 
 nonASCII = 128
 replStr = "?"
-fileNameFrom = os.path.join(dataOutDirName, "oscarDataInCommaSepForm.csv")
-fileNameTo = os.path.join(dataOutDirName, "oscarDataInCommaSepFormASCII.csv")
+fileNameFrom = dataOutFileName
+fileNameTo = re.sub("\\_", "ASCII_", dataOutFileName)
+# fileNameTo = os.path.join(dataOutDirName, "oscarDataInCommaSepFormASCII.csv")
 fr = open(fileNameFrom, "r")
 fw = open(fileNameTo, "w")
 line = fr.readline()
