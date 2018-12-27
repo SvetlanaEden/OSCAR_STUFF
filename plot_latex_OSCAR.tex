@@ -1,0 +1,620 @@
+% Template for PLoS
+% Version 3.5 March 2018
+%
+% % % % % % % % % % % % % % % % % % % % % %
+%
+% -- IMPORTANT NOTE
+%
+% This template contains comments intended 
+% to minimize problems and delays during our production 
+% process. Please follow the template instructions
+% whenever possible.
+%
+% % % % % % % % % % % % % % % % % % % % % % % 
+%
+% Once your paper is accepted for publication, 
+% PLEASE REMOVE ALL TRACKED CHANGES in this file 
+% and leave only the final text of your manuscript. 
+% PLOS recommends the use of latexdiff to track changes during review, as this will help to maintain a clean tex file.
+% Visit https://www.ctan.org/pkg/latexdiff?lang=en for info or contact us at latex@plos.org.
+%
+%
+% There are no restrictions on package use within the LaTeX files except that 
+% no packages listed in the template may be deleted.
+%
+% Please do not include colors or graphics in the text.
+%
+% The manuscript LaTeX source should be contained within a single file (do not use \input, \externaldocument, or similar commands).
+%
+% % % % % % % % % % % % % % % % % % % % % % %
+%
+% -- FIGURES AND TABLES
+%
+% Please include tables/figure captions directly after the paragraph where they are first cited in the text.
+%
+% DO NOT INCLUDE GRAPHICS IN YOUR MANUSCRIPT
+% - Figures should be uploaded separately from your manuscript file. 
+% - Figures generated using LaTeX should be extracted and removed from the PDF before submission. 
+% - Figures containing multiple panels/subfigures must be combined into one image file before submission.
+% For figure citations, please use "Fig" instead of "Figure".
+% See http://journals.plos.org/plosone/s/figures for PLOS figure guidelines.
+%
+% Tables should be cell-based and may not contain:
+% - spacing/line breaks within cells to alter layout or alignment
+% - do not nest tabular environments (no tabular environments within tabular environments)
+% - no graphics or colored text (cell background color/shading OK)
+% See http://journals.plos.org/plosone/s/tables for table guidelines.
+%
+% For tables that exceed the width of the text column, use the adjustwidth environment as illustrated in the example table in text below.
+%
+% % % % % % % % % % % % % % % % % % % % % % % %
+%
+% -- EQUATIONS, MATH SYMBOLS, SUBSCRIPTS, AND SUPERSCRIPTS
+%
+% IMPORTANT
+% Below are a few tips to help format your equations and other special characters according to our specifications. For more tips to help reduce the possibility of formatting errors during conversion, please see our LaTeX guidelines at http://journals.plos.org/plosone/s/latex
+%
+% For inline equations, please be sure to include all portions of an equation in the math environment.  For example, x$^2$ is incorrect; this should be formatted as $x^2$ (or $\mathrm{x}^2$ if the romanized font is desired).
+%
+% Do not include text that is not math in the math environment. For example, CO2 should be written as CO\textsubscript{2} instead of CO$_2$.
+%
+% Please add line breaks to long display equations when possible in order to fit size of the column. 
+%
+% For inline equations, please do not include punctuation (commas, etc) within the math environment unless this is part of the equation.
+%
+% When adding superscript or subscripts outside of brackets/braces, please group using {}.  For example, change "[U(D,E,\gamma)]^2" to "{[U(D,E,\gamma)]}^2". 
+%
+% Do not use \cal for caligraphic font.  Instead, use \mathcal{}
+%
+% % % % % % % % % % % % % % % % % % % % % % % % 
+%
+% Please contact latex@plos.org with any questions.
+%
+% % % % % % % % % % % % % % % % % % % % % % % %
+
+\documentclass[10pt,letterpaper]{article}
+\usepackage[top=0.85in,left=2.75in,footskip=0.75in]{geometry}
+
+% amsmath and amssymb packages, useful for mathematical formulas and symbols
+\usepackage{amsmath,amssymb}
+
+% Use adjustwidth environment to exceed column width (see example table in text)
+\usepackage{changepage}
+
+% Use Unicode characters when possible
+\usepackage[utf8x]{inputenc}
+
+% textcomp package and marvosym package for additional characters
+\usepackage{textcomp,marvosym}
+
+% cite package, to clean up citations in the main text. Do not remove.
+\usepackage{cite}
+
+% Use nameref to cite supporting information files (see Supporting Information section for more info)
+\usepackage{nameref,hyperref}
+
+% line numbers
+\usepackage[right]{lineno}
+
+% ligatures disabled
+\usepackage{microtype}
+\DisableLigatures[f]{encoding = *, family = * }
+
+% color can be used to apply background shading to table cells only
+\usepackage[table]{xcolor}
+
+% array package and thick rules for tables
+\usepackage{array}
+
+% create "+" rule type for thick vertical lines
+\newcolumntype{+}{!{\vrule width 2pt}}
+
+% create \thickcline for thick horizontal lines of variable length
+\newlength\savedwidth
+\newcommand\thickcline[1]{%
+  \noalign{\global\savedwidth\arrayrulewidth\global\arrayrulewidth 2pt}%
+  \cline{#1}%
+  \noalign{\vskip\arrayrulewidth}%
+  \noalign{\global\arrayrulewidth\savedwidth}%
+}
+
+% \thickhline command for thick horizontal lines that span the table
+\newcommand\thickhline{\noalign{\global\savedwidth\arrayrulewidth\global\arrayrulewidth 2pt}%
+\hline
+\noalign{\global\arrayrulewidth\savedwidth}}
+
+
+% Remove comment for double spacing
+%\usepackage{setspace} 
+%\doublespacing
+
+% Text layout
+\raggedright
+\setlength{\parindent}{0.5cm}
+\textwidth 5.25in 
+\textheight 8.75in
+
+% Bold the 'Figure #' in the caption and separate it from the title/caption with a period
+% Captions will be left justified
+\usepackage[aboveskip=1pt,labelfont=bf,labelsep=period,justification=raggedright,singlelinecheck=off]{caption}
+\renewcommand{\figurename}{Fig}
+
+% Use the PLoS provided BiBTeX style
+\bibliographystyle{plos2015}
+
+% Remove brackets from numbering in List of References
+\makeatletter
+\renewcommand{\@biblabel}[1]{\quad#1.}
+\makeatother
+
+
+
+% Header and Footer with logo
+\usepackage{lastpage,fancyhdr,graphicx}
+\usepackage{epstopdf}
+%\pagestyle{myheadings}
+\pagestyle{fancy}
+\fancyhf{}
+%\setlength{\headheight}{27.023pt}
+%\lhead{\includegraphics[width=2.0in]{PLOS-submission.eps}}
+\rfoot{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrule}{\hrule height 2pt \vspace{2mm}}
+\fancyheadoffset[L]{2.25in}
+\fancyfootoffset[L]{2.25in}
+\lfoot{\today}
+
+%% Include all macros below
+
+\newcommand{\lorem}{{\bf LOREM}}
+\newcommand{\ipsum}{{\bf IPSUM}}
+
+
+\linespread{2}
+
+%% END MACROS SECTION
+
+
+\begin{document}
+\vspace*{0.2in}
+
+% Title must be 250 characters or less.
+\begin{flushleft}
+{\Large
+\textbf\newline{On probability of winning Academy Award for Best Acting.} % Please use "sentence case" for title and headings (capitalize only the first word in a title (or heading), the first word in a subtitle (or subheading), and any proper nouns).
+}
+\newline
+% Insert author names, affiliations and corresponding author email (do not include titles, positions, or degrees).
+\\
+Svetlana Eden\textsuperscript{1},
+% Name1 Surname\textsuperscript{1,2\Yinyang},
+% Name2 Surname\textsuperscript{2\Yinyang},
+% Name3 Surname\textsuperscript{2,3\textcurrency},
+% Name4 Surname\textsuperscript{2},
+% Name5 Surname\textsuperscript{2\ddag},
+% Name6 Surname\textsuperscript{2\ddag},
+% Name7 Surname\textsuperscript{1,2,3*},
+% with the Lorem Ipsum Consortium\textsuperscript{\textpilcrow}
+\\
+\bigskip
+\textbf{1} Department of Biostatistics, Vanderbilt University Medical School, Nashville, TN, USA
+% \\
+% \textbf{2} Affiliation Dept/Program/Center, Institution Name, City, State, Country
+% \\
+% \textbf{3} Affiliation Dept/Program/Center, Institution Name, City, State, Country
+% \\
+\bigskip
+
+% % Insert additional author notes using the symbols described below. Insert symbol callouts after author names as necessary.
+% %
+% % Remove or comment out the author notes below if they aren't used.
+% %
+% % Primary Equal Contribution Note
+% \Yinyang These authors contributed equally to this work.
+%
+% % Additional Equal Contribution Note
+% % Also use this double-dagger symbol for special authorship notes, such as senior authorship.
+% \ddag These authors also contributed equally to this work.
+%
+% % Current address notes
+% \textcurrency Current Address: Dept/Program/Center, Institution Name, City, State, Country % change symbol to "\textcurrency a" if more than one current address note
+% % \textcurrency b Insert second current address
+% % \textcurrency c Insert third current address
+%
+% % Deceased author note
+% \dag Deceased
+%
+% % Group/Consortium Author Note
+% \textpilcrow Membership list can be found in the Acknowledgments section.
+
+% Use the asterisk to denote corresponding authorship and provide email address in note below.
+* svetlana.eden@vanderbilt.edu
+
+\end{flushleft}
+% Please keep the abstract below 300 words
+\section*{Abstract}
+In this paper we are concerned with estimating the probability of winning an OSCAR Academy \emph{Best Actor/Actress} award. We hypothesize that if actors/actresses were nominated for their performance in a movie that was also nominated for \emph{Best Picture}, then their chances of winning the \emph{Best Actor/Actress} award are higher compared to those who performed in a movie that was not nominated for \emph{Best Picture}. Bayesian framework is used in order to test this hypothesis. Three models are proposed and their performance is evaluated. Probabilities of winning an award for best acting are estimated. The results largely support our hypothesis.
+
+
+
+% Please keep the Author Summary between 150 and 200 words
+% Use first person. PLOS ONE authors please skip this step. 
+% Author Summary not valid for PLOS ONE submissions.   
+% \section*{Author summary}
+
+\linenumbers
+
+% Use "Eq" instead of "Equation" for equation citations.
+\section*{To-do list}
+\begin{enumerate}
+  \item report the model performances only for the main model: trace plots WAIC, LOO, some forest plot ... 
+  \item describe the 4th model and compare it to the rest of the models.
+  \item include discussion of the WAIC and LOO in the Results and in the Discussion
+  \item report the overal P or OR for all models and patterns in a table (men/women/main/sensitivity)
+  \item report the code and the data (pydata.csv, your Jupyter notebook file)
+\end{enumerate}
+
+
+\section*{Introduction}
+Watching movies is a big part of the American culture. Every person has his or her preferred janre, story, favorite actors or actresses. People think that they can tell good acting from bad, but do we really judge acting objectively? As laymen, we are probably not objective. But what about professional actors and actresses, the OSCAR academy members for example? Are they being objective when they choose the best actor out of all OSCAR nominees? Suppose that OSCAR academy members are presented with two different movies, movie 1 and movie 2, in which actor 1 and actor 2 perform respectively. The academy members are asked to decide which actor is better. Movie 1 is not particularly interesting, except that actor 1's acting is very good. Movie 2 is exceptionally good, and the acting of actor 2 is as good as of actor 1. The question is: which actor will be perceived as a better one? I first thought of this question while watching the $80^{th}$ OSCAR ceremony of 2007. I was very impressed with the performance of Viggo Mortensen in \emph{Eastern Promises}, but I thought that his chances are not as high as of Daniel Day-Lewis who was nominated for his performance in \emph{There Will Be Blood}, which was also nominated for Best Picture, because the judgement of the academy members can be confounded by the overall impression from these movies. It is also possible that movies nominated for Best Picture are likely to have a larger budget and can hire a better cast. But my personal opinion is there is hardly any difference in talant in OSCAR nominees. It seems more likely that the cast of the movie nominated for Best Picture is more visible to the judges and the its performance is enhanced by the overall impression from the movie. In this work we hypothesize that a Best Actor/Actress (BA) nominee whose movie is also nominated for Best Picture award (BP) has a higher chance of winning this award than an actor/actress from a movie without BP nomination. In the remaining text, we refer to actors and actresses from a BP-nominated movie as a \emph{BP-nominee}. However, a term BP-winner refers to a movie that was awarded with Best Picture OSCAR award. Naturally, a \emph{BA-nominee} is an actor or actress nominated for best actor/actress. We might also use term \emph{BA-movie nominee} when we refer to a movie where the a BA nominee was a cast member.
+
+% % Place tables after the first paragraph in which they are cited.
+% \begin{table}[!ht]
+% \begin{adjustwidth}{-2.25in}{0in} % Comment out/remove adjustwidth environment if table fits in text column.
+% \centering
+% \caption{
+% {\bf Table caption Nulla mi mi, venenatis sed ipsum varius, volutpat euismod diam.}}
+% \begin{tabular}{|l+l|l|l|l|l|l|l|}
+% \hline
+% \multicolumn{4}{|l|}{\bf Heading1} & \multicolumn{4}{|l|}{\bf Heading2}\\ \thickhline
+% $cell1 row1$ & cell2 row 1 & cell3 row 1 & cell4 row 1 & cell5 row 1 & cell6 row 1 & cell7 row 1 & cell8 row 1\\ \hline
+% $cell1 row2$ & cell2 row 2 & cell3 row 2 & cell4 row 2 & cell5 row 2 & cell6 row 2 & cell7 row 2 & cell8 row 2\\ \hline
+% $cell1 row3$ & cell2 row 3 & cell3 row 3 & cell4 row 3 & cell5 row 3 & cell6 row 3 & cell7 row 3 & cell8 row 3\\ \hline
+% \end{tabular}
+% \begin{flushleft} Table notes Phasellus venenatis, tortor nec vestibulum mattis, massa tortor interdum felis, nec pellentesque metus tortor nec nisl. Ut ornare mauris tellus, vel dapibus arcu suscipit sed.
+% \end{flushleft}
+% \label{table1}
+% \end{adjustwidth}
+% \end{table}
+
+
+
+
+% Lorem ipsum dolor sit~\cite{bib1} amet, consectetur adipiscing elit. Curabitur eget porta erat. Morbi consectetur est vel gravida pretium. Suspendisse ut dui eu ante cursus gravida non sed sem. Nullam Eq~(\ref{eq:schemeP}) sapien tellus, commodo id velit id, eleifend volutpat quam. Phasellus mauris velit, dapibus finibus elementum vel, pulvinar non tellus. Nunc pellentesque pretium diam, quis maximus dolor faucibus id.~\cite{bib2} Nunc convallis sodales ante, ut ullamcorper est egestas vitae. Nam sit amet enim ultrices, ultrices elit pulvinar, volutpat risus.
+%
+% \begin{eqnarray}
+% \label{eq:schemeP}
+%   \mathrm{P_Y} = \underbrace{H(Y_n) - H(Y_n|\mathbf{V}^{Y}_{n})}_{S_Y} + \underbrace{H(Y_n|\mathbf{V}^{Y}_{n})- H(Y_n|\mathbf{V}^{X,Y}_{n})}_{T_{X\rightarrow Y}},
+% \end{eqnarray}
+
+\section*{Materials and methods}
+
+% % For figure citations, please use "Fig" instead of "Figure".
+% Nulla mi mi, Fig~\ref{fig1} venenatis sed ipsum varius, volutpat euismod diam. Proin rutrum vel massa non gravida. Quisque tempor sem et dignissim rutrum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi at justo vitae nulla elementum commodo eu id massa. In vitae diam ac augue semper tincidunt eu ut eros. Fusce fringilla erat porttitor lectus cursus, \nameref{S1_Video} vel sagittis arcu lobortis. Aliquam in enim semper, aliquam massa id, cursus neque. Praesent faucibus semper libero.
+
+% % Place figure captions after the first paragraph in which they are cited.
+% \begin{figure}[!h]
+% \caption{{\bf Bold the figure title.}
+% Figure caption text here, please use this space for the figure panel descriptions instead of using subfigure commands. A: Lorem ipsum dolor sit amet. B: Consectetur adipiscing elit.}
+% \label{fig1}
+% \end{figure}
+
+
+\subsection*{The data}
+The data for each OSCAR ceremony are publicly available (see \cite{oscar_data_base}). The data has to be processed to a proper format before the analysis. We provide the relevant data together with python jupyter file containing the analysis code  (see the \emph{Python} code in the Appendix).
+
+Since the beginning of OSCAR, the nomination categories are different across years, relevant OSCAR categories had to be merged into one. For example, the following categories were used as BP categories:
+
+\begin{enumerate}
+  \item BEST MOTION PICTURE
+  \item OUTSTANDING MOTION PICTURE
+  \item OUTSTANDING PRODUCTION
+  \item BEST PICTURE
+  \end{enumerate}
+  
+  For actors and actresses the following categories were used as BA categories:
+\begin{enumerate}
+  \item ACTOR
+  \item ACTOR IN A LEADING ROLE
+  \item ACTRESS
+  \item ACTRESS IN A LEADING ROLE
+\end{enumerate}  
+  
+  
+In order to make things simpler, we only consider actors and actresses nominated for main (rather than supporting) roles. We also excluded years 1928-1932 because during that time more than one actor/actress could win an award. For each year, our data included all movies nominated for BA and whether each of them was also nominated for BP and/or won the BA award.
+
+Because we are interested in association of PB nomination and BA win, we had to have one-to-one correspondence between the BA nominee and the BP nominee. In real data, however, some BA nominees may be from the same movie. For example, in 1935, three actors from \emph{Mutiny on the Bounty} were nominated for best acting performance. After 1935, eleven OSCARs (1944, 1953, 1956, 1958, 1961, 1964, 1969, 1972, 1976, 1983, 1984 ??? check the updated data) had two BA nominees from the same movie. For women, starting from the year 1933,  five OSCARs (1950, 1959, 1977, 1983, 1991 ??? check the updated data) had two BA nominees from the same movie. In this paper, as our main analysis, we treat two BA nominees from the same movie as one. The rationale  behind this choice is that we are only interested if the probability of winning a BA award by at least one of them is higher compared to nominees from a non-BP nominated movie. We also performed a sensitivity analysis, where we treat each BA nominee as if they are all from different movies. We excluded the 6 years for actors and ??? for actresses when either all BA nominees performed in BP nominated movies or none of the BA nominees performed in PB nominated movies. These years are not informative for our analysis because we cannot compare the chances of a BP nominee vs a non-BP nominee in a given year. The remaining data included 79 years for actors and ??? years for actresses.
+
+\subsection*{Notations and definitions}
+
+We introduce the following notations:
+\begin{itemize}
+	\item $N$ - total number of years ($N=77$)
+	\item $i=\{1,...,N\}$ - year index
+	\item $P_{W_{BA}|BP, ~i}$ - the probability of winning a BA award given that the movie was nominated for BP.
+	\item $n_i$ - number of movies nominated for BA in a given year.
+	\item $r_i$ - number of movies out of $n_i$ nominated for BP in a given year ($r_i\leq n_i$).
+	\item $\delta_i$ - an indicator variable. $\delta_i=1$ if in year $i$ the movie that won a BA award was also nominated for BP, and $\delta_i=0$ otherwise.
+	\item Variables $n_i$ and $r_i$ differ from year to year. We believe that different combinations of $n_i$ and $r_i$ might effect $P_{W_{BA}|BP,~i}$ in different ways. For example, if in a given year there are five BA nominees, and two of them are nominated for BP, the expected probability of winning a BA award while being a BP nominee is $\frac{r_i}{n_i} = \frac{2}{5}$. We call the pair $(r_j,n_j)$ a \emph{pattern} and useindex $j$ to enumerate different patterns. For instance, the pattern of this example is $(2, 5)$.
+  % \item Years with the same \emph{pattern} belong to one \emph{cluster}. There are $N_c$ unique \emph{clusters}.
+	\item $\left\{i: (r_i,n_i) = (r_j,n_j)\right\}$ - all years with the same pattern (see previous definition), or a \emph{cluster}.
+	\item $N_j$ - number of years in a given cluster or a \emph{cluster size}.
+	\item $R_j = \sum_{i \in (r_j,n_j)} \delta_i$ - number of years (out of $N_j$) in which the BA award was won by a BP  nominee.
+  % \item $n_j$ - number of movies nominated for BA in a given \emph{cluster}
+  % \item $r_j$ - number of movies out of $n_i$ nominated for BP in a given \emph{cluster}.
+\end{itemize}
+
+\subsection*{Primary hypothesis}
+Suppose the nomination for BP did not have any effect on $P_{W_{BA}|BP, ~i}$, then $P_{W_{BA}|BP, ~i}$ would have depended only on the prevalence of BP nominees among BA nominees for a given year. In other words, $P_{W_{BA}|BP, ~i}$ would have been equal to $\frac{r_i}{n_i}$. We hypothesize that a BA nominee whose movie is also a BP nominee has a higher chance of winning a BA award than a BA nominee without BP nomination, therefore our \emph{null} and primary hypotheses are:
+
+\begin{align*}
+	H_0:&~~~P_{W_{BA}|BP,~i} = \frac{r_i}{n_i}\\
+	H_1:&~~~P_{W_{BA}|BP,~i} > \frac{r_i}{n_i}\\
+\end{align*}
+
+Our very simple data summary shows (see Table \ref{table:goal1}) that the observed probability of winning a BA award seems to be higher than the expected probability.\\
+
+\begin{table}[!ht]
+\begin{adjustwidth}{-2.25in}{0in} % Comment out/remove adjustwidth environment if table fits in text column.
+\centering
+\caption{
+{\bf Expected and observed probabilities of winning BA given BP for each cluster.\label{table:goal1}}}
+\begin{tabular}{|l+l|l|l|l|l|l|l|}
+\hline
+\multicolumn{1}{|l+}{\bf Pattern $(r_j,n_j)$}&\multicolumn{1}{c}{\bf (1,5)}&\multicolumn{1}{c}{\bf (2,3)}&\multicolumn{1}{c}{\bf (2,4)}&\multicolumn{1}{c}{\bf (2,5)}&\multicolumn{1}{c}{\bf (3,4)}&\multicolumn{1}{c}{\bf (3,5)}&\multicolumn{1}{c|}{\bf (4,5)}\tabularnewline
+\thickhline
+Expected probability of winning BA $\left(\frac{r_j}{n_j}\right)$ &0.2&0.67&0.5&0.4&0.75&0.6&0.8\tabularnewline
+\hline
+Cluster size $(N_j)$ &8&3&5&23&5&23&10\tabularnewline
+\hline
+Number of BP that won BA $(R_j)$ &2&3&4&17&4&21&10\tabularnewline
+\hline
+Observed probability of winning BA $\left(\frac{R_j}{N_j}\right)$ &0.25&1&0.8&0.74&0.8&0.91&1\tabularnewline
+\hline
+\end{tabular}
+\begin{flushleft} Note that years with patterns $\pmb{(0,5)}$ (no BP nominees), $\pmb{(4,4)}$, and $\pmb{(5,5)}$ (all BA nominees are also BP nominees) do not appear in this table because they were not included in the analysis. Also, this table summarizes the data for the main analysis, where we treat two BA nominees from the same movie as one.
+\end{flushleft}
+\label{table1}
+\end{adjustwidth}
+\end{table}
+
+
+\section*{Analysis plan}
+\label{secAnalysisPlan}
+Many different approaches can be used to test the main hypothesis. We focus here on the Bayesian hierarchical modeling approach because it allows us to incorporate prior believes and it allows to model clusters differently, while modeling clusters as a whole. We estimate $\theta_j={P}_{W_{BA}|BP,~j}$ using the following models:
+
+~\\
+\begin{enumerate}
+	\item\textbf{Model I}:
+		\begin{align*}
+			R_j &\sim Binomial(\theta_j, N_j)\\
+			\theta_j &\sim Beta(\alpha, \beta)\\
+			\alpha &\sim Gamma(2, 1),~with~mean~2\\
+			\beta &\sim Gamma(2, 1),~with~mean~2\\
+		\end{align*}
+		
+
+	\item\textbf{Model II}:
+		\begin{align*}
+			R_j &\sim Binomial\left(\theta_j, N_j \right)\\
+			\theta_j &=\frac{1}{1+e^{- \alpha_j}},~\text{where}\\
+			\alpha_j &\sim N(\mu, \tau)\\
+			\mu &\sim N(0, sd=100)\\
+			\tau &\sim Gamma(100, rate=100)\\
+		\end{align*}
+		
+
+  \item\textbf{Model III}: 
+		\begin{align*}
+			R_j &\sim Binomial\left(\theta_j, N_j \right)\\
+			\theta_j &=\frac{1}{1+e^{-C_j - \gamma_j}},~\text{where}~~~C_j = -log\left(\frac{n_j}{r_j}-1\right)\\
+			\gamma_j &\sim N(\mu, \tau)\\
+			\mu &\sim N(0, sd=100)\\
+			\tau &\sim Gamma(100, rate=100)\\
+		\end{align*}
+		
+  \item\textbf{Model IV}: 
+		\begin{align*}
+			R_j &\sim Binomial\left(\theta_j, N_j \right)\\
+			\theta_j &=\frac{1}{1+e^{-c_j - \gamma_j}}\\
+      c_j &\sim Beta(\alpha = r_j, \beta = n_j - r_j)\\
+			\gamma_j &\sim N(\mu, \tau)\\
+			\mu &\sim N(0, sd=100)\\
+			\tau &\sim Gamma(100, rate=100)\\
+		\end{align*}
+		
+
+\end{enumerate}
+
+All three models have slightly different approaches to modeling the probability of winning a BA award. In the first model, this probability is Beta-distributed. The problem with the first model is that the distribution of $\theta_j$ has a mean of $1/2$, which means that all estimates will be shrunk toward $1/2$ not matter what the pattern is. The second model is similar to the first, except that the probability is modeled with inverse logit distribution. We included both of these models in order to see how our distributional assumptions affect our results. In addition of shrinking the cluster probabilities toward the middle, these two models also do not utilize the cluster specific information. Specifically, they do not take into account that in a year with, say, $3$ nominees for BP out of $5$ nominees for BA, the expected probability of winning the OSCAR while being nominated for BP is $3/5$. In model III, however, this expected probability is taken into account in the following way. The probability of winning is modeled as an inverse logit function $\theta_j =\frac{1}{1+e^{-C_j - \gamma_j}}$, where parameter $\gamma_j$ represents the deviation from the null hypothesis and constant $C_j = -log\left(\frac{n_j}{r_j}-1\right)$ is chosen in such way that when the null hypothesis is true $(\gamma_j = 0)$, the probability of winning BA given BP equals to the expected probability:
+
+
+\begin{align*}
+	\theta_j =\frac{1}{1+e^{-C_j}} = \frac{1}{1+e^{log\left(\frac{n_j}{r_j}-1\right)}} =  \frac{1}{1+\frac{n_j}{r_j}-1}  = \frac{r_j}{n_j} \\
+\end{align*}
+
+Model IV is similar to Model III, but instead of constant $C_j$ it has a random variable that is distributed is such way that under the null hypothesis, its mean is $\frac{r_j}{n_j}$. We introduced Model IV as a more flexible version of Model III. Note that for all three models, the deviation from the null can be in either direction so the fact that our hypothesis is one-sided does not affect the results. We test the null hypothesis by computing the probabilities of interest, $\hat{\theta}_j$, and their credible intervals for each pattern. For model III, we also test the hypothesis for all patterns by computing the mean and the credible intervals for parameter $\mu$, the mean of the distributions for $\gamma_j$. For all three models, we also report odds ratios (ORs), $\widehat{OR}_j$, which are computed as the ratio of the observed odds and the expected odds of winning BA while being nominated for BP:
+
+\begin{align*}
+	\widehat{OR}_j =  \frac{\hat{\theta}_j}{1 - \hat{\theta}_j}  \bigg/  \frac{R_j/N_j}{1 - R_j/N_j} \\
+\end{align*}
+
+
+The credible intervals were computed as $0.025^{th}$ and $0.975^{th}$ percentiles of the corresponding posterior distributions. For all model $1000$ sampling iterations were performed with $5000$ iterations of tuning. All models were assessed for convergence and fit (see XXX???). Programming language \texttt{Python}[1] and library \texttt{pymc3} were used for all computations; the code is provided in the AppendixXXX???.
+
+
+% Results and Discussion can be combined.
+\section*{Results}
+Fig S1~\ref{S1_Fig} and Fig S2~\ref{S2_Fig} show the result of the main analysis for actors and actresses respectively. Each panel displays the mean estimate of the probability of winning and its credible intervals for all three models (from left to right). The figure demonstrates that for the cluster size of $10$ or higher, being nominated for BP increases the odds of winning the BA award by roughly $300\%$. Model III also supported our hypothesis for much smaller clusters with expected probability of winning of $2/4$, $2/3$, and $4/5$  (see Fig S1~\ref{S1_Fig}, panels (C), (E), and (G)). %The estimated ORs are presented in Table XXX???.
+~\\
+(I am still working on the same analysis for actresses and on the sensitivity analysis)
+
+\section*{Discussion}
+In this paper we estimated the odds of winning the Best Actor award while being nominated for Best Picture relatively to the odds of winning Best Actor by chance. For larger sample size and certain prevalence of BP nomination our analysis supports the hypothesis that being nominated for BP improves the odds of winning a BA award. 
+Our approach has several limitations. The models did not account for other nominations. Also, for actors from the same movie, we either assumed that there is only one actor or that two actors are from different movies. In our future work we plan to remedy this limitation by introducing clustering by movie. 
+The evidence in favor or our primary hypothesis was not uniform across clusters. One possible reason was that different clusters had different sample size. It also seems that the more actors/actresses are nominated for best pictures the less this nomination seems to influence the probability of winning an award for best acting. This seems to make sense: if all performers were from BP-nominated movies this nomination would not matter. If only one or two out of five BA nominees were also BP nominees this could possible make their performance stand out more.
+
+\section*{Conclusion}
+
+Overall, there is some evidence that being part of the movie nominated for best picture increases chances of winning an award for best acting. As we noted in our discussion  evidence however, this evidence is not uniform across clusters. 
+
+\section*{Supporting information}
+
+\begin{table}[!ht]
+\begin{adjustwidth}{-2.25in}{0in} % Comment out/remove adjustwidth environment if table fits in text column.
+\centering
+\caption{
+{\bf Expected and observed probabilities of winning BA given BP for each cluster. Sensitivity analysis.\label{table:goal1}}}
+\begin{tabular}{|l+l|l|l|l|l|l|l|}
+\hline
+\multicolumn{1}{|l+}{\bf Pattern $(r_j,n_j)$}&\multicolumn{1}{c}{\bf (1,5)}&\multicolumn{1}{c}{\bf (2,5)}&\multicolumn{1}{c}{\bf (3,5)}&\multicolumn{1}{c}{\bf (2,3)}&\multicolumn{1}{c|}{\bf (4,5)}\tabularnewline
+\thickhline
+Expected probability of winning BA $\left(\frac{r_j}{n_j}\right)$ &0.2&0.4&0.6&0.67&0.8\tabularnewline
+\hline
+Cluster size $(N_j)$ &8&24&27&2&16\tabularnewline
+\hline
+Number of BP that won BA $(R_j)$ &2&18&24&2&15\tabularnewline
+\hline
+Observed probability of winning BA $\left(\frac{R_j}{N_j}\right)$ &0.25&0.75&0.89&1&0.94\tabularnewline
+\hline
+\end{tabular}
+\begin{flushleft} Note that years with patterns $\pmb{(0,5)}$ (no BP nominees), $\pmb{(4,4)}$, and $\pmb{(5,5)}$ (all BA nominees are also BP nominees) do not appear in this table because they were not included in the analysis. Also, this table summarizes the data for the sensitivity analysis, where we treat two BA nominees from the same movie as two BA nominee.
+\end{flushleft}
+\label{table1}
+\end{adjustwidth}
+\end{table}
+
+
+
+
+% Include only the SI item label in the paragraph heading. Use the \nameref{label} command to cite SI items in the text.
+\paragraph{S1 Fig.}
+{\label{S1_Fig}
+{\bf Estimated probabilities of winning a Best Actor award, $\theta_j$ and their credible intervals for each cluster. Main analysis.} The red line represents the expected probability of winning a BA award given a BP nomination. The yellow dots represent the observed probabilities, and the black vertical segments represent the credible intervals of the observed probabilities. Each panel shows the expected and observed probabilities for each pattern for all three models: model I on the left, model II in the middle, and model III on the right.
+\includegraphics[scale=0.54]{plot_main_men}
+}
+
+{\paragraph{S2 Fig.}
+\label{S2_Fig}
+{\bf Estimated probabilities of winning a Best Actress award when nominated for BP, $\theta_j$ and their credible intervals for each pattern. Main analysis.} The red line represents the expected probability of winning a BA award given a BP nomination. The yellow dots represent the observed probabilities, and the black vertical segments represent the credible intervals of the observed probabilities. Each panel shows the expected and observed probabilities for each pattern for all three models: model I on the left, model II in the middle, and model III on the right.
+\includegraphics[scale=0.54]{plot_main_wom}
+}
+
+{\paragraph*{S3 Fig.}
+\label{S3_Fig}
+{\bf Estimated probabilities of winning a Best Actor award when being nominated for BP, $\theta_j$ and their credible intervals for each pattern. Sensitivity analysis.} The red line represents the expected probability of winning a BA award given a BP nomination. The yellow dots represent the observed probabilities, and the black vertical segments represent the credible intervals of the observed probabilities. Each panel shows the expected and observed probabilities for each pattern and for all three models: model I on the left, model II in the middle, and model III on the right.
+\includegraphics[scale=0.54]{plot_sens_men}
+}
+
+{\paragraph*{S4 Fig.}
+\label{S4_Fig}
+{\bf Estimated probabilities of winning a Best Actress award when being nominated for BP, $\theta_j$ and their credible intervals for each pattern. Sensitivity analysis.} The red line represents the expected probability of winning a BA award given a BP nomination. The yellow dots represent the observed probabilities, and the black vertical segments represent the credible intervals of the observed probabilities. Each panel shows the expected and observed probabilities for each pattern and for all three models: model I on the left, model II in the middle, and model III on the right.
+
+\includegraphics[scale=0.54]{plot_sens_wom}
+}
+
+% \paragraph*{S1 Appendix.}
+% \label{S1_Appendix}
+% {\bf Lorem ipsum.} Maecenas convallis mauris sit amet sem ultrices gravida. Etiam eget sapien nibh. Sed ac ipsum eget enim egestas ullamcorper nec euismod ligula. Curabitur fringilla pulvinar lectus consectetur pellentesque.
+%
+% \paragraph*{S1 Table.}
+% \label{S1_Table}
+% {\bf Lorem ipsum.} Maecenas convallis mauris sit amet sem ultrices gravida. Etiam eget sapien nibh. Sed ac ipsum eget enim egestas ullamcorper nec euismod ligula. Curabitur fringilla pulvinar lectus consectetur pellentesque.
+
+\subsection*{OSCAR data after processing in Python and R}
+\subsection*{Python code that does the modeling}
+
+\section*{Acknowledgments}
+I would like to thank Chris Fonnesbeck for his encouragement, David Schlueter for his helpful explanation of \texttt{pymc3}, Tebeb Gebretsadik for her feedback about the paper.
+
+\section*{Questions}
+Should I cite IPython? How to cite Jupyter?
+
+\nolinenumbers
+
+% Either type in your references using
+% \begin{thebibliography}{}
+% \bibitem{}
+% Text
+% \end{thebibliography}
+%
+% or
+%
+% Compile your BiBTeX database using our plos2015.bst
+% style file and paste the contents of your .bbl file
+% here. See http://journals.plos.org/plosone/s/latex for 
+% step-by-step instructions.
+% 
+\begin{thebibliography}{10}
+
+\bibitem{bib_pymc3}
+Library in Programming language Python
+\newblock \url{https://peerj.com/articles/cs-55/}.
+
+\bibitem{bib_jupyter}
+Jupyter environment
+\newblock \url{https://???.com/articles/cs-55/}.
+
+\bibitem{bib_ipyton}
+IPython 
+\newblock {P\'erez, Fernando and Granger, Brian E.},
+\newblock{{IP}ython: a System for Interactive Scientific Computing},
+\newblock {Computing in Science and Engineering},
+\newblock {9},
+\newblock {3},
+\newblock {21--29},
+\newblock may,
+\newblock 2007,
+\newblock \url{https://ipython.org},
+\newblock  ISSN      = "1521-9615",
+\newblock  doi       = {10.1109/MCSE.2007.53},
+\newblock  publisher = {IEEE Computer Society}
+
+\bibitem{bib_python}
+Programming language Python
+\newblock {{H}ow to cite Python?}.
+\newblock Something. 2018 May;X(XX):XXX--XXX.
+\newblock \url{http://www.python.org}
+
+\bibitem{oscar_data_base}
+OSCAR Database
+\newblock As of 2018 December
+\newblock \url{http://awardsdatabase.oscars.org}
+
+\bibitem{inform_criteria_for_bayesian_models}
+\newblock Gelman, A., Hwang, J., Vehtari, A. (2014). Understanding predictive information criteria for Bayesian models. Statistics and Computing, 24(6), 997–1016.
+
+\bibitem{pract_bayesian_model_eval}
+\newblock Vehtari, A, Gelman, A, Gabry, J. (2016). Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC. Statistics and Computing
+
+\bibitem{pymc3_tutorial_model_comp}
+PyMC3 Jupyter Notebook Tutorial for Model Comparison
+\newblock \url{https://docs.pymc.io/notebooks/model_comparison.html}
+
+
+% @Misc{,
+%   author =    {Eric Jones and Travis Oliphant and Pearu Peterson and others},
+%   title =     {{SciPy}: Open source scientific tools for {Python}},
+%   year =      {2001--},
+%   url = "http://www.scipy.org/",
+%   note = {[Online; accessed <today>]}
+% }
+
+% \bibitem{bib2}
+% Ohno S.
+% \newblock Evolution by gene duplication.
+% \newblock London: George Alien \& Unwin Ltd. Berlin, Heidelberg and New York:
+%   Springer-Verlag.; 1970.
+%
+% \bibitem{bib3}
+% Magwire MM, Bayer F, Webster CL, Cao C, Jiggins FM.
+% \newblock {{S}uccessive increases in the resistance of {D}rosophila to viral
+%   infection through a transposon insertion followed by a {D}uplication}.
+% \newblock PLoS Genet. 2011 Oct;7(10):e1002337.
+
+\end{thebibliography}
+
+
+
+\end{document}
+
